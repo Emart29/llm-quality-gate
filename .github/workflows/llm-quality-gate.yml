@@ -1,0 +1,117 @@
+name: LLM Quality Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'evals/**'
+      - 'llm/**'
+      - 'config.yaml'
+      - '.github/workflows/llm-quality-gate.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'evals/**'
+      - 'llm/**'
+      - 'config.yaml'
+
+env:
+  GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m pytest tests/ -v --tb=short
+
+  quality-gate:
+    name: LLM Quality Gate Evaluation
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Run evaluation
+        id: eval
+        run: |
+          python -m cli.main eval \
+            --provider groq \
+            --output evaluation_results/ci_result.json \
+            --no-db \
+            --fail-on-gate \
+            2>&1 | tee eval_output.txt
+        continue-on-error: true
+
+      - name: Generate PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '## LLM Quality Gate Results\n\n';
+
+            try {
+              const result = JSON.parse(fs.readFileSync('evaluation_results/ci_result.json', 'utf8'));
+              const gate = result.quality_gate || {};
+              const status = gate.passed ? ':white_check_mark: **PASSED**' : ':x: **FAILED**';
+
+              body += `**Status:** ${status}\n`;
+              body += `**Provider:** ${result.provider_name}/${result.model_name}\n`;
+              body += `**Tests:** ${result.total_test_cases} total, ${result.successful_executions} passed\n`;
+              body += `**Overall Score:** ${(gate.overall_score * 100).toFixed(1)}%\n\n`;
+
+              body += '| Metric | Score | Threshold | Status |\n';
+              body += '|--------|-------|-----------|--------|\n';
+
+              const metrics = result.aggregated_metrics || {};
+              for (const [name, m] of Object.entries(metrics)) {
+                const icon = m.passed ? ':white_check_mark:' : ':x:';
+                body += `| ${name} | ${(m.score * 100).toFixed(1)}% | ${(m.threshold * 100).toFixed(0)}% | ${icon} |\n`;
+              }
+
+              if (gate.failed_metrics && gate.failed_metrics.length > 0) {
+                body += `\n**Failed metrics:** ${gate.failed_metrics.join(', ')}\n`;
+              }
+            } catch (e) {
+              body += ':warning: Could not parse evaluation results.\n';
+              try {
+                const output = fs.readFileSync('eval_output.txt', 'utf8');
+                body += '```\n' + output.slice(-1000) + '\n```\n';
+              } catch {}
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-results
+          path: evaluation_results/
+
+      - name: Check gate status
+        if: steps.eval.outcome == 'failure'
+        run: |
+          echo "::error::Quality gate failed. Check PR comment for details."
+          exit 1
