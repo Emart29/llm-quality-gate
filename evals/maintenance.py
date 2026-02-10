@@ -291,11 +291,14 @@ class DatasetGrowthAutomator:
         
         # Create cleaned dataset
         cleaned_dataset = EvaluationDataset(
+            name=dataset.name,
+            description=dataset.description,
             version=dataset.version,
             created_at=dataset.created_at,
             updated_at=datetime.utcnow(),
             test_cases=unique_cases,
-            metadata=dataset.metadata
+            created_by=dataset.created_by,
+            global_thresholds=dataset.global_thresholds,
         )
         
         return cleaned_dataset, changes

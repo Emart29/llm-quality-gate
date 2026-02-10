@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLMQ - Quality Gate Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand:  { DEFAULT: '#6366f1', light: '#818cf8', dark: '#4f46e5' },
+            surface: { 1: '#0f172a', 2: '#1e293b', 3: '#334155' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .metric-card { transition: transform 0.15s ease; }
+    .metric-card:hover { transform: translateY(-2px); }
+    .tab-active { border-bottom: 2px solid #6366f1; color: #818cf8; }
+  </style>
+</head>
+<body class="bg-surface-1 text-gray-200 min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="bg-surface-2 border-b border-surface-3 px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center font-bold text-white text-sm">Q</div>
+      <span class="text-lg font-semibold text-white">LLMQ Dashboard</span>
+    </div>
+    <div class="flex gap-1 text-sm">
+      <button onclick="showTab('overview')"   id="tab-overview"   class="px-4 py-2 rounded-lg hover:bg-surface-3 tab-active">Overview</button>
+      <button onclick="showTab('runs')"       id="tab-runs"       class="px-4 py-2 rounded-lg hover:bg-surface-3">Runs</button>
+      <button onclick="showTab('compare')"    id="tab-compare"    class="px-4 py-2 rounded-lg hover:bg-surface-3">Compare</button>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+
+    <!-- ═══ OVERVIEW TAB ═══ -->
+    <section id="page-overview">
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="metric-card bg-surface-2 rounded-xl p-5 border border-surface-3">
+          <p class="text-xs text-gray-400 uppercase tracking-wide">Task Success</p>
+          <p id="kpi-task-success" class="text-3xl font-bold text-emerald-400 mt-1">--</p>
+        </div>
+        <div class="metric-card bg-surface-2 rounded-xl p-5 border border-surface-3">
+          <p class="text-xs text-gray-400 uppercase tracking-wide">Avg Relevance</p>
+          <p id="kpi-relevance" class="text-3xl font-bold text-blue-400 mt-1">--</p>
+        </div>
+        <div class="metric-card bg-surface-2 rounded-xl p-5 border border-surface-3">
+          <p class="text-xs text-gray-400 uppercase tracking-wide">Hallucination Risk</p>
+          <p id="kpi-hallucination" class="text-3xl font-bold text-red-400 mt-1">--</p>
+        </div>
+        <div class="metric-card bg-surface-2 rounded-xl p-5 border border-surface-3">
+          <p class="text-xs text-gray-400 uppercase tracking-wide">Gate Pass Rate</p>
+          <p id="kpi-gate" class="text-3xl font-bold text-brand-light mt-1">--</p>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="grid md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
+          <h3 class="text-sm font-semibold text-gray-300 mb-3">Quality Trends</h3>
+          <canvas id="chart-trends" height="220"></canvas>
+        </div>
+        <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
+          <h3 class="text-sm font-semibold text-gray-300 mb-3">Provider Performance</h3>
+          <canvas id="chart-providers" height="220"></canvas>
+        </div>
+      </div>
+
+      <!-- Recent Runs -->
+      <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
+        <h3 class="text-sm font-semibold text-gray-300 mb-3">Recent Evaluation Runs</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-gray-400 border-b border-surface-3">
+                <th class="text-left py-2 px-3">Provider / Model</th>
+                <th class="text-left py-2 px-3">Dataset</th>
+                <th class="text-center py-2 px-3">Tests</th>
+                <th class="text-center py-2 px-3">Score</th>
+                <th class="text-center py-2 px-3">Gate</th>
+                <th class="text-left py-2 px-3">Time</th>
+              </tr>
+            </thead>
+            <tbody id="recent-runs-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ RUNS TAB ═══ -->
+    <section id="page-runs" class="hidden">
+      <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
+        <h3 class="text-sm font-semibold text-gray-300 mb-3">All Evaluation Runs</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-gray-400 border-b border-surface-3">
+                <th class="text-left py-2 px-3">ID</th>
+                <th class="text-left py-2 px-3">Provider</th>
+                <th class="text-left py-2 px-3">Model</th>
+                <th class="text-center py-2 px-3">Success%</th>
+                <th class="text-center py-2 px-3">Task</th>
+                <th class="text-center py-2 px-3">Relevance</th>
+                <th class="text-center py-2 px-3">Halluc.</th>
+                <th class="text-center py-2 px-3">Gate</th>
+                <th class="text-left py-2 px-3">Date</th>
+              </tr>
+            </thead>
+            <tbody id="all-runs-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ COMPARE TAB ═══ -->
+    <section id="page-compare" class="hidden">
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
+          <h3 class="text-sm font-semibold text-gray-300 mb-3">Radar Comparison</h3>
+          <canvas id="chart-radar" height="300"></canvas>
+        </div>
+        <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
+          <h3 class="text-sm font-semibold text-gray-300 mb-3">Provider Cards</h3>
+          <div id="provider-cards" class="space-y-3"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="text-center text-xs text-gray-500 py-4">
+    LLMQ &mdash; LLM Quality Gate &copy; 2025
+  </footer>
+
+  <script>
+    // ── Tab navigation ───────────────────────────────────────
+    const tabs = ['overview', 'runs', 'compare'];
+    function showTab(name) {
+      tabs.forEach(t => {
+        document.getElementById('page-' + t).classList.toggle('hidden', t !== name);
+        document.getElementById('tab-' + t).classList.toggle('tab-active', t === name);
+      });
+      if (name === 'runs') loadAllRuns();
+      if (name === 'compare') loadComparison();
+    }
+
+    // ── Chart instances ──────────────────────────────────────
+    let trendsChart, providersChart, radarChart;
+
+    const chartColors = {
+      emerald: 'rgba(52, 211, 153, 0.8)',
+      blue:    'rgba(96, 165, 250, 0.8)',
+      red:     'rgba(248, 113, 113, 0.8)',
+      purple:  'rgba(129, 140, 248, 0.8)',
+    };
+
+    // ── Load overview ────────────────────────────────────────
+    async function loadOverview() {
+      try {
+        const res = await fetch('/api/overview');
+        const data = await res.json();
+
+        document.getElementById('kpi-task-success').textContent =
+          (data.avg_task_success * 100).toFixed(1) + '%';
+        document.getElementById('kpi-relevance').textContent =
+          (data.avg_relevance * 100).toFixed(1) + '%';
+        document.getElementById('kpi-hallucination').textContent =
+          (data.avg_hallucination * 100).toFixed(1) + '%';
+        document.getElementById('kpi-gate').textContent =
+          (data.quality_gate_pass_rate * 100).toFixed(0) + '%';
+
+        renderRecentRuns(data.recent_runs || []);
+        renderTrendsChart(data.recent_runs || []);
+        renderProvidersChart(data.providers || []);
+      } catch (e) {
+        console.warn('No data yet:', e);
+      }
+    }
+
+    function renderRecentRuns(runs) {
+      const tbody = document.getElementById('recent-runs-body');
+      tbody.innerHTML = runs.map(r => `
+        <tr class="border-b border-surface-3 hover:bg-surface-3/50">
+          <td class="py-2 px-3">${r.provider_name}/${r.model_name}</td>
+          <td class="py-2 px-3 text-gray-400">${r.dataset_name || '-'}</td>
+          <td class="text-center py-2 px-3">${r.total_test_cases}</td>
+          <td class="text-center py-2 px-3 font-mono">${((r.overall_score || 0) * 100).toFixed(1)}%</td>
+          <td class="text-center py-2 px-3">
+            <span class="px-2 py-0.5 rounded text-xs font-medium
+              ${r.quality_gate_passed ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'}">
+              ${r.quality_gate_passed ? 'PASS' : 'FAIL'}
+            </span>
+          </td>
+          <td class="py-2 px-3 text-gray-400 text-xs">${new Date(r.created_at).toLocaleString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderTrendsChart(runs) {
+      const labels = runs.map((_, i) => `Run ${i + 1}`).reverse();
+      const scores = runs.map(r => (r.overall_score || 0) * 100).reverse();
+      const task   = runs.map(r => (r.task_success_score || 0) * 100).reverse();
+
+      if (trendsChart) trendsChart.destroy();
+      trendsChart = new Chart(document.getElementById('chart-trends'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Overall', data: scores, borderColor: chartColors.purple, tension: 0.3, fill: false },
+            { label: 'Task Success', data: task, borderColor: chartColors.emerald, tension: 0.3, fill: false },
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#94a3b8' } } },
+          scales: {
+            x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+            y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' }, min: 0, max: 100 },
+          }
+        }
+      });
+    }
+
+    function renderProvidersChart(providers) {
+      const labels = providers.map(p => p.name);
+      const scores = providers.map(p => (p.avg_score || 0) * 100);
+      const colors = ['#6366f1','#34d399','#60a5fa','#f87171','#fbbf24','#a78bfa','#fb923c','#38bdf8'];
+
+      if (providersChart) providersChart.destroy();
+      providersChart = new Chart(document.getElementById('chart-providers'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Avg Score',
+            data: scores,
+            backgroundColor: colors.slice(0, labels.length),
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          indexAxis: 'y',
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' }, min: 0, max: 100 },
+            y: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+          }
+        }
+      });
+    }
+
+    // ── All runs tab ─────────────────────────────────────────
+    async function loadAllRuns() {
+      try {
+        const res = await fetch('/api/runs?limit=100');
+        const data = await res.json();
+        const tbody = document.getElementById('all-runs-body');
+        tbody.innerHTML = (data.runs || []).map(r => `
+          <tr class="border-b border-surface-3 hover:bg-surface-3/50">
+            <td class="py-2 px-3 font-mono text-xs text-gray-400">${(r.id || '').slice(0, 8)}</td>
+            <td class="py-2 px-3">${r.provider_name}</td>
+            <td class="py-2 px-3">${r.model_name}</td>
+            <td class="text-center py-2 px-3">${((r.success_rate || 0) * 100).toFixed(0)}%</td>
+            <td class="text-center py-2 px-3">${((r.task_success_score || 0) * 100).toFixed(1)}%</td>
+            <td class="text-center py-2 px-3">${((r.relevance_score || 0) * 100).toFixed(1)}%</td>
+            <td class="text-center py-2 px-3">${((r.hallucination_score || 0) * 100).toFixed(1)}%</td>
+            <td class="text-center py-2 px-3">
+              <span class="px-2 py-0.5 rounded text-xs font-medium
+                ${r.quality_gate_passed ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'}">
+                ${r.quality_gate_passed ? 'PASS' : 'FAIL'}
+              </span>
+            </td>
+            <td class="py-2 px-3 text-xs text-gray-400">${new Date(r.created_at).toLocaleDateString()}</td>
+          </tr>
+        `).join('');
+      } catch (e) { console.warn(e); }
+    }
+
+    // ── Compare tab ──────────────────────────────────────────
+    async function loadComparison() {
+      try {
+        const res = await fetch('/api/runs?limit=50');
+        const data = await res.json();
+        const runs = data.runs || [];
+
+        // Group by provider/model
+        const groups = {};
+        runs.forEach(r => {
+          const key = `${r.provider_name}/${r.model_name}`;
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(r);
+        });
+
+        const entries = Object.entries(groups).slice(0, 5);
+        const labels = ['Task Success', 'Relevance', '1-Hallucination', 'Gate Pass'];
+        const colors = ['#6366f1','#34d399','#60a5fa','#f87171','#fbbf24'];
+
+        const datasets = entries.map(([name, rs], i) => {
+          const avg = (field) => rs.reduce((s, r) => s + (r[field] || 0), 0) / rs.length;
+          return {
+            label: name,
+            data: [
+              avg('task_success_score') * 100,
+              avg('relevance_score') * 100,
+              (1 - avg('hallucination_score')) * 100,
+              rs.filter(r => r.quality_gate_passed).length / rs.length * 100,
+            ],
+            borderColor: colors[i],
+            backgroundColor: colors[i] + '33',
+          };
+        });
+
+        if (radarChart) radarChart.destroy();
+        radarChart = new Chart(document.getElementById('chart-radar'), {
+          type: 'radar',
+          data: { labels, datasets },
+          options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#94a3b8' } } },
+            scales: {
+              r: {
+                ticks: { color: '#64748b', backdropColor: 'transparent' },
+                grid: { color: '#334155' },
+                pointLabels: { color: '#94a3b8' },
+                min: 0, max: 100,
+              }
+            }
+          }
+        });
+
+        // Provider cards
+        const cardsDiv = document.getElementById('provider-cards');
+        cardsDiv.innerHTML = entries.map(([name, rs]) => {
+          const avg = (field) => (rs.reduce((s, r) => s + (r[field] || 0), 0) / rs.length * 100).toFixed(1);
+          return `
+            <div class="bg-surface-3 rounded-lg p-4">
+              <p class="font-semibold text-white">${name}</p>
+              <div class="grid grid-cols-3 gap-2 mt-2 text-xs">
+                <div><span class="text-gray-400">Runs:</span> ${rs.length}</div>
+                <div><span class="text-gray-400">Score:</span> ${avg('overall_score')}%</div>
+                <div><span class="text-gray-400">Task:</span> ${avg('task_success_score')}%</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) { console.warn(e); }
+    }
+
+    // ── Init ─────────────────────────────────────────────────
+    loadOverview();
+  </script>
+</body>
+</html>
