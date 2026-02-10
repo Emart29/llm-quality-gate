@@ -1,0 +1,277 @@
+{
+  "name": "LLM Quality Gate Golden Dataset",
+  "description": "Comprehensive evaluation dataset for LLM quality assessment covering diverse task types, difficulty levels, and evaluation scenarios including hallucination detection, consistency testing, and task success validation.",
+  "version": "1.0",
+  "created_at": "2026-02-10T00:00:00",
+  "updated_at": "2026-02-10T00:00:00",
+  "created_by": "LLM Quality Gate System",
+  "global_thresholds": {
+    "task_success_threshold": 0.8,
+    "relevance_threshold": 0.7,
+    "hallucination_threshold": 0.1,
+    "consistency_threshold": 0.8
+  },
+  "test_cases": [
+    {
+      "id": "qa_easy_001",
+      "input_prompt": "What is the capital of France?",
+      "expected_output": "Paris",
+      "task_type": "question_answering",
+      "difficulty": "easy",
+      "tags": ["geography", "factual", "simple"],
+      "metrics_to_evaluate": ["task_success", "hallucination"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "qa_easy_002", 
+      "input_prompt": "How many days are in a week?",
+      "expected_output": "7",
+      "task_type": "question_answering",
+      "difficulty": "easy",
+      "tags": ["basic_knowledge", "factual", "simple"],
+      "metrics_to_evaluate": ["task_success", "hallucination"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "qa_medium_001",
+      "input_prompt": "Explain the difference between renewable and non-renewable energy sources. Provide two examples of each.",
+      "expected_output": "Renewable energy sources can be replenished naturally and include solar power and wind power. Non-renewable energy sources are finite and include fossil fuels like coal and oil.",
+      "task_type": "question_answering",
+      "difficulty": "medium",
+      "tags": ["science", "environment", "explanation"],
+      "metrics_to_evaluate": ["task_success", "relevance", "hallucination"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "qa_hard_001",
+      "input_prompt": "What are the key differences between quantum computing and classical computing in terms of information processing principles?",
+      "task_type": "question_answering", 
+      "difficulty": "hard",
+      "tags": ["technology", "quantum", "complex"],
+      "metrics_to_evaluate": ["relevance", "hallucination", "consistency"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "reasoning_easy_001",
+      "input_prompt": "If John has 5 apples and gives 2 to his friend, how many apples does John have left?",
+      "expected_output": "3",
+      "task_type": "reasoning",
+      "difficulty": "easy", 
+      "tags": ["math", "simple_arithmetic", "word_problem"],
+      "metrics_to_evaluate": ["task_success", "hallucination"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "reasoning_medium_001",
+      "input_prompt": "If a train travels 60 miles per hour for 2.5 hours, how far does it travel? Show your calculation.",
+      "expected_output": "150 miles. Calculation: 60 mph × 2.5 hours = 150 miles",
+      "task_type": "reasoning",
+      "difficulty": "medium",
+      "tags": ["math", "calculation", "reasoning", "physics"],
+      "constraints": ["Must show calculation", "Answer must include units"],
+      "metrics_to_evaluate": ["task_success", "relevance"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "reasoning_hard_001",
+      "input_prompt": "A company's profit increases by 15% each year. If the profit was $100,000 in year 1, what will be the total cumulative profit after 5 years?",
+      "expected_output": "The total cumulative profit after 5 years will be approximately $674,424. Year-by-year: Year 1: $100,000, Year 2: $115,000, Year 3: $132,250, Year 4: $152,088, Year 5: $174,901. Total: $674,239",
+      "task_type": "reasoning",
+      "difficulty": "hard",
+      "tags": ["math", "compound_growth", "business", "complex_calculation"],
+      "metrics_to_evaluate": ["task_success", "relevance"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "summarization_medium_001",
+      "input_prompt": "Summarize the following text in 2 sentences: Climate change refers to long-term shifts in global temperatures and weather patterns. While climate change is a natural phenomenon, scientific evidence shows that human activities have been the main driver of climate change since the 1800s. The burning of fossil fuels generates greenhouse gas emissions that act like a blanket wrapped around the Earth, trapping the sun's heat and raising temperatures. The main greenhouse gases that are causing climate change include carbon dioxide and methane.",
+      "system_prompt": "You are a helpful assistant that creates concise, accurate summaries.",
+      "task_type": "summarization",
+      "difficulty": "medium",
+      "tags": ["summarization", "climate", "comprehension"],
+      "metrics_to_evaluate": ["relevance", "consistency", "task_success"],
+      "constraints": ["Must be exactly 2 sentences", "Must capture key points"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "classification_medium_001",
+      "input_prompt": "Classify the following email as either 'spam' or 'not spam': 'Congratulations! You have won $1,000,000! Click here immediately to claim your prize before it expires in 24 hours!'",
+      "expected_output": "spam",
+      "task_type": "classification",
+      "difficulty": "medium",
+      "tags": ["classification", "spam_detection", "text_analysis"],
+      "metrics_to_evaluate": ["task_success", "relevance"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "generation_medium_001",
+      "input_prompt": "Write a professional email to a client explaining a 2-day delay in project delivery due to unexpected technical issues.",
+      "task_type": "generation",
+      "difficulty": "medium",
+      "tags": ["writing", "professional", "communication"],
+      "constraints": ["Professional tone", "Apologetic but confident", "Offer solution"],
+      "metrics_to_evaluate": ["relevance", "consistency"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "creative_hard_001",
+      "input_prompt": "Write a short story about a robot learning to paint, in exactly 100 words.",
+      "task_type": "creative_writing",
+      "difficulty": "hard",
+      "tags": ["creative", "storytelling", "constrained", "robot"],
+      "constraints": ["Exactly 100 words", "Must include robot character", "Theme: learning to paint"],
+      "metrics_to_evaluate": ["task_success", "relevance", "consistency"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "coding_medium_001",
+      "input_prompt": "Write a Python function that takes a list of numbers and returns the sum of all even numbers in the list.",
+      "expected_output": "def sum_even_numbers(numbers):\n    return sum(num for num in numbers if num % 2 == 0)",
+      "task_type": "coding",
+      "difficulty": "medium",
+      "tags": ["python", "programming", "algorithms"],
+      "constraints": ["Must be valid Python code", "Handle empty lists"],
+      "metrics_to_evaluate": ["task_success", "relevance"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "math_hard_001",
+      "input_prompt": "Solve for x: 2x² + 5x - 3 = 0. Show all steps.",
+      "expected_output": "Using the quadratic formula: x = (-5 ± √(25 + 24)) / 4 = (-5 ± √49) / 4 = (-5 ± 7) / 4. Therefore: x = 1/2 or x = -3",
+      "task_type": "math",
+      "difficulty": "hard",
+      "tags": ["algebra", "quadratic", "equations"],
+      "constraints": ["Show all steps", "Use quadratic formula"],
+      "metrics_to_evaluate": ["task_success", "relevance"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "hallucination_test_001",
+      "input_prompt": "What did Albert Einstein say about quantum mechanics in his 1955 Nobel Prize speech?",
+      "expected_output": "Einstein never gave a Nobel Prize speech in 1955. He won the Nobel Prize in Physics in 1921, and he died in 1955. This question contains false premises.",
+      "task_type": "factual_recall",
+      "difficulty": "hard",
+      "tags": ["factual", "hallucination_test", "historical", "einstein"],
+      "metrics_to_evaluate": ["hallucination", "task_success"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "hallucination_test_002",
+      "input_prompt": "Tell me about the famous painting 'The Starry Night Over the Rhône' by Vincent van Gogh that was painted in 1889 in his bedroom at the Saint-Paul-de-Mausole asylum.",
+      "expected_output": "There are some inaccuracies in this question. 'The Starry Night Over the Rhône' was painted in 1888 in Arles, not in 1889 at the asylum. The painting done at Saint-Paul-de-Mausole asylum in 1889 was 'The Starry Night' (without 'Over the Rhône').",
+      "task_type": "factual_recall",
+      "difficulty": "expert",
+      "tags": ["art", "hallucination_test", "van_gogh", "historical"],
+      "metrics_to_evaluate": ["hallucination", "task_success"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "hallucination_test_003",
+      "input_prompt": "What are the health benefits of the fictional superfruit called 'Zorbonium' that was discovered in the Amazon rainforest?",
+      "expected_output": "Zorbonium is not a real fruit. This appears to be a fictional name, and I cannot provide information about health benefits of non-existent foods.",
+      "task_type": "factual_recall",
+      "difficulty": "medium",
+      "tags": ["factual", "hallucination_test", "fictional"],
+      "metrics_to_evaluate": ["hallucination", "task_success"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "consistency_test_001",
+      "input_prompt": "Explain the concept of machine learning in simple terms.",
+      "system_prompt": "You are an expert teacher explaining complex topics to beginners.",
+      "task_type": "generation",
+      "difficulty": "medium",
+      "tags": ["explanation", "consistency_test", "technical", "machine_learning"],
+      "metrics_to_evaluate": ["consistency", "relevance"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "consistency_test_002",
+      "input_prompt": "What is the best programming language for beginners?",
+      "task_type": "question_answering",
+      "difficulty": "medium",
+      "tags": ["programming", "consistency_test", "opinion"],
+      "metrics_to_evaluate": ["consistency", "relevance"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "translation_medium_001",
+      "input_prompt": "Translate the following English sentence to Spanish: 'The weather is beautiful today.'",
+      "expected_output": "El clima está hermoso hoy.",
+      "task_type": "translation",
+      "difficulty": "medium",
+      "tags": ["translation", "spanish", "simple"],
+      "metrics_to_evaluate": ["task_success", "relevance"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "edge_case_001",
+      "input_prompt": "",
+      "task_type": "question_answering",
+      "difficulty": "easy",
+      "tags": ["edge_case", "empty_input"],
+      "metrics_to_evaluate": ["hallucination"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    },
+    {
+      "id": "long_context_001",
+      "input_prompt": "Based on the following research paper abstract, identify the main research question and methodology: 'This study investigates the impact of social media usage on adolescent mental health outcomes through a longitudinal cohort study of 2,500 participants aged 13-18 over a 3-year period. We employed mixed-methods research combining quantitative surveys measuring depression and anxiety scores with qualitative interviews exploring social media experiences. Our findings suggest a complex relationship between social media use patterns and mental health, with passive consumption showing stronger associations with negative outcomes compared to active engagement. The study controlled for socioeconomic factors, family history of mental health issues, and academic performance. Results indicate that moderate, purposeful social media use may have neutral or even positive effects, while excessive passive scrolling correlates with increased depressive symptoms.'",
+      "task_type": "question_answering",
+      "difficulty": "hard",
+      "tags": ["research", "analysis", "long_context", "academic"],
+      "metrics_to_evaluate": ["relevance", "task_success"],
+      "created_at": "2026-02-10T00:00:00",
+      "version": "1.0"
+    }
+  ],
+  "stats": {
+    "total_test_cases": 21,
+    "task_types": {
+      "question_answering": 7,
+      "reasoning": 3,
+      "summarization": 1,
+      "classification": 1,
+      "generation": 2,
+      "creative_writing": 1,
+      "coding": 1,
+      "math": 1,
+      "factual_recall": 3,
+      "translation": 1
+    },
+    "difficulty_distribution": {
+      "easy": 4,
+      "medium": 11,
+      "hard": 5,
+      "expert": 1
+    },
+    "tag_distribution": {
+      "factual": 4,
+      "hallucination_test": 4,
+      "consistency_test": 2,
+      "math": 3,
+      "simple": 2,
+      "reasoning": 2,
+      "technical": 2
+    }
+  }
+}

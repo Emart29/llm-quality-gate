@@ -1,0 +1,37 @@
+fastapi
+uvicorn
+pytest
+pytest-asyncio
+pydantic
+pydantic-settings
+httpx
+sentence-transformers
+numpy
+scikit-learn
+python-dotenv
+
+# LLM Provider SDKs
+groq
+openai
+anthropic
+google-generativeai
+huggingface-hub
+transformers
+
+# Database & Storage
+duckdb
+sqlalchemy
+
+# Utilities
+pyyaml
+aiofiles
+python-multipart
+jinja2
+
+# Dashboard & Visualization
+plotly
+pandas
+
+# Optional Local Providers
+# ollama (install separately)
+# localai (install separately)
