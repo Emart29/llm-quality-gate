@@ -23,6 +23,10 @@ async def demo_providers():
         logger.info("Configuration loaded successfully")
     except Exception as e:
         logger.error(f"Failed to load configuration: {e}")
+        print("❌ Configuration Error:")
+        print(f"   {e}")
+        print("💡 Check your config.yaml file and API key environment variables")
+        print("   Example: cp config.example.yaml config.yaml")
         return
     
     # List available providers

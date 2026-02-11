@@ -87,6 +87,11 @@ pip install -r requirements.txt
 # Configure API keys
 cp .env.example .env
 # Edit .env with your API keys (see Environment Configuration below)
+
+# Optional: Create CLI shortcut (Unix/Linux/Mac)
+chmod +x llmq
+export PATH="$PWD:$PATH"  # Add to your shell profile
+# Now you can use: llmq dashboard
 ```
 
 ### Environment Configuration
@@ -120,12 +125,121 @@ python -m integrations.cli.main providers
 
 ```bash
 # Start the dashboard + API server
-python -m integrations.cli.main dashboard
+llmq dashboard
 
 # In another terminal, run an evaluation
-python -m integrations.cli.main eval --provider groq
+llmq eval --provider groq
 
 # View results at http://localhost:8000
+```
+
+## Usage Examples
+
+### Basic Evaluation
+
+Evaluate a single provider against your test dataset:
+
+```bash
+# Quick evaluation with Groq (free, fast)
+llmq eval --provider groq
+
+# Evaluate with OpenAI GPT-3.5
+llmq eval --provider openai
+
+# Use specific model
+llmq eval --provider openai --model gpt-4
+
+# Custom dataset
+llmq eval --provider groq --dataset my-tests.json
+```
+
+### Model Comparison
+
+Compare multiple providers to find the best one:
+
+```bash
+# Run evaluations
+llmq eval --provider groq
+llmq eval --provider openai  
+llmq eval --provider claude
+
+# Compare results
+llmq compare
+```
+
+Output:
+```
+Provider/Model                       Runs    Score     Task    Relev   Halluc   Gate
+----------------------------------------------------------------------------------------
+groq/llama3-8b-8192                    12    85.2%    88.1%   82.4%     8.1%    92%
+openai/gpt-3.5-turbo                   8     91.7%    94.2%   89.1%     5.3%   100%
+claude/claude-3-haiku-20240307         5     89.4%    91.8%   87.2%     6.7%    80%
+```
+
+### Running Dashboard
+
+Launch the web interface for visual analysis:
+
+```bash
+# Start dashboard (default: http://localhost:8000)
+llmq dashboard
+
+# Custom host/port
+llmq dashboard --host 0.0.0.0 --port 3000
+
+# Development mode with auto-reload
+llmq dashboard --reload
+```
+
+### CI Integration with Fail Thresholds
+
+Use in CI/CD pipelines to block deployments on quality failures:
+
+```bash
+# Fail CI build if quality gate fails
+llmq eval --provider openai --fail-on-gate
+
+# Example GitHub Actions workflow
+name: LLM Quality Gate
+on: [push, pull_request]
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Run Quality Gate
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          llmq dashboard &
+          sleep 10  # Wait for server to start
+          llmq eval --provider openai --fail-on-gate
+```
+
+### Advanced Usage
+
+```bash
+# High-performance evaluation
+llmq eval --provider groq --workers 10 --timeout 60
+
+# Skip expensive LLM-as-judge metrics for speed
+llmq eval --provider groq --no-judge
+
+# Non-deterministic evaluation (temperature > 0)
+llmq eval --provider openai --non-deterministic
+
+# Custom configuration file
+llmq eval --provider groq --config my-config.yaml
+
+# View historical runs
+llmq runs --provider openai --limit 20
+
+# Update quality gate thresholds
+llmq settings --set '{"quality_gates": {"task_success_threshold": 0.9}}'
 ```
 
 ## CI Integration Example
@@ -317,6 +431,98 @@ quality_gates:
 - [ ] Enterprise SSO integration
 - [ ] Advanced analytics dashboard
 
+## Demo Script
+
+### Setup (30 seconds)
+```bash
+# 1. Clone and setup
+git clone https://github.com/Emart29/llm-quality-gate.git
+cd llm-quality-gate
+pip install -r requirements.txt
+
+# 2. Configure API key (show .env.example)
+cp .env.example .env
+# Add GROQ_API_KEY=your_key_here
+
+# 3. Start dashboard
+llmq dashboard
+```
+
+**Talking Points:**
+- "LLMQ is a CI-first evaluation framework for LLM applications"
+- "Works with 8 providers - from free Groq to premium OpenAI/Claude"
+- "Zero configuration needed - just add your API keys"
+
+### Core Demo (90 seconds)
+
+**1. Provider Status (15s)**
+```bash
+llmq providers
+```
+*Show available providers with status indicators*
+
+**2. Run Evaluation (30s)**
+```bash
+llmq eval --provider groq
+```
+*Highlight the 4 core metrics as they appear:*
+- Task Success (exact match + semantic similarity)
+- Relevance (embedding-based)
+- Hallucination Detection (LLM-as-judge)
+- Consistency (multiple runs)
+
+**3. Dashboard View (30s)**
+*Switch to browser showing http://localhost:8000*
+- Historical trends
+- Provider comparison charts
+- Quality gate pass/fail status
+
+**4. CI Integration (15s)**
+```bash
+llmq eval --provider groq --fail-on-gate
+```
+*Show how it exits with error code 1 on failure*
+
+### Advanced Features (60 seconds)
+
+**1. Multi-Provider Comparison (30s)**
+```bash
+llmq eval --provider openai
+llmq compare
+```
+*Show side-by-side performance table*
+
+**2. Quality Gate Configuration (30s)**
+```bash
+llmq settings --set '{"quality_gates": {"task_success_threshold": 0.9}}'
+```
+*Demonstrate threshold adjustment and re-evaluation*
+
+### Key Talking Points
+
+**Problem Statement:**
+- "LLM applications fail silently in production"
+- "No standardized way to test prompt changes"
+- "Provider performance varies significantly"
+
+**Solution Benefits:**
+- "Catch regressions before deployment"
+- "Compare 8 providers with unified metrics"
+- "Integrates seamlessly into CI/CD pipelines"
+- "Self-hosted - your data never leaves your infrastructure"
+
+**Technical Highlights:**
+- "Provider-agnostic architecture"
+- "4 comprehensive metrics covering accuracy, relevance, and safety"
+- "Built for CI - tests run in under 60 seconds"
+- "Web-first API design with optional CLI"
+
+**Call to Action:**
+- "Perfect for LLM app developers, DevOps teams, and QA engineers"
+- "Start with free Groq, scale to production with OpenAI/Claude"
+- "Open source, MIT licensed, ready for production use"
+
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
@@ -335,7 +541,7 @@ pip install -r requirements.txt
 python -m pytest tests/ -v
 
 # Start development server
-python -m integrations.cli.main dashboard --reload
+llmq dashboard --reload
 ```
 
 ### Project Structure
