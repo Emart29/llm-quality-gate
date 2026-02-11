@@ -1,7 +1,7 @@
 """Evaluation dataset management and schema."""
 
 from typing import Dict, List, Any, Optional, Union
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 import json
 import uuid
@@ -76,12 +76,14 @@ class TestCase(BaseModel):
     created_by: Optional[str] = Field(None, description="Creator of the test case")
     version: str = Field(default="1.0", description="Version of the test case")
     
-    @validator('tags')
+    @field_validator('tags')
+    @classmethod
     def validate_tags(cls, v):
         """Ensure tags are lowercase and alphanumeric."""
         return [tag.lower().replace(' ', '_') for tag in v if tag.strip()]
     
-    @validator('input_prompt')
+    @field_validator('input_prompt')
+    @classmethod
     def validate_input_prompt(cls, v):
         """Ensure input prompt is not empty."""
         if not v.strip():
@@ -224,7 +226,7 @@ class DatasetLoader:
             
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(
-                    dataset.dict(), 
+                    dataset.model_dump(), 
                     f, 
                     indent=2, 
                     default=str,  # Handle datetime serialization

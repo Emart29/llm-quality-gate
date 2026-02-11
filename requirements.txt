@@ -14,7 +14,7 @@ python-dotenv
 groq
 openai
 anthropic
-google-generativeai
+google-genai
 huggingface-hub
 transformers
 

@@ -99,27 +99,36 @@ class TestLLMProviders:
 
     @pytest.mark.asyncio
     @patch.dict('os.environ', {'TEST_API_KEY': 'test-key-123'})
-    @patch('google.generativeai.GenerativeModel')
-    async def test_gemini_provider(self, mock_model_class, mock_config, sample_request):
+    @patch('google.genai.Client')
+    async def test_gemini_provider(self, mock_client_class, mock_config, sample_request):
         """Test Gemini provider."""
         mock_usage = Mock()
         mock_usage.prompt_token_count = 10
         mock_usage.candidates_token_count = 8
         mock_usage.total_token_count = 18
 
-        mock_response = Mock()
-        mock_response.text = "Gemini generated response"
-        mock_response.usage_metadata = mock_usage
-        mock_response.candidates = [Mock()]
-        mock_response.candidates[0].finish_reason = "STOP"
-        mock_response.candidates[0].safety_ratings = []
+        mock_candidate = Mock()
+        mock_candidate.content = Mock()
+        mock_candidate.content.parts = [Mock()]
+        mock_candidate.content.parts[0].text = "Gemini generated response"
+        mock_candidate.finish_reason = "STOP"
+        mock_candidate.safety_ratings = []
 
-        mock_model = Mock()
-        mock_model.generate_content.return_value = mock_response
-        mock_model_class.return_value = mock_model
+        mock_response = Mock()
+        mock_response.candidates = [mock_candidate]
+        mock_response.usage_metadata = mock_usage
+
+        mock_client = Mock()
+        mock_client.aio = Mock()
+        mock_client.aio.models = Mock()
+        mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+        mock_client_class.return_value = mock_client
 
         provider = GeminiProvider(mock_config)
         response = await provider.generate(sample_request)
+
+        assert response.content == "Gemini generated response"
+        assert response.error is None
 
         assert response.content == "Gemini generated response"
         assert response.error is None

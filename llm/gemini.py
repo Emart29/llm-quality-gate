@@ -1,6 +1,6 @@
 """Google Gemini LLM provider implementation."""
 
-import google.generativeai as genai
+import google.genai as genai
 from typing import Dict, Any
 from .base import LLMProvider, LLMRequest, LLMResponse
 import logging
@@ -13,54 +13,58 @@ class GeminiProvider(LLMProvider):
     
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
-        self.model_name = config.get("model", "gemini-pro")
+        self.model_name = config.get("model", "gemini-1.5-flash")
         
-        # Configure the API key
-        if self.api_key:
-            genai.configure(api_key=self.api_key)
-        
-        # Initialize the model
+        # Initialize the client
         try:
-            self.model = genai.GenerativeModel(self.model_name)
+            if self.api_key:
+                self.client = genai.Client(api_key=self.api_key)
+            else:
+                logger.error("No API key provided for Gemini")
+                self.client = None
         except Exception as e:
-            logger.error(f"Failed to initialize Gemini model: {e}")
-            self.model = None
+            logger.error(f"Failed to initialize Gemini client: {e}")
+            self.client = None
     
     async def generate(self, request: LLMRequest) -> LLMResponse:
         """Generate response using Gemini API."""
         try:
-            if not self.model:
+            if not self.client:
                 return LLMResponse(
                     content="",
                     provider=self.provider_name,
                     model=self.model_name,
-                    error="Gemini model not initialized"
+                    error="Gemini client not initialized"
                 )
             
-            # Build prompt (Gemini doesn't separate system/user like other APIs)
-            full_prompt = ""
+            # Build contents for the new API
+            contents = []
             if request.system_prompt:
-                full_prompt = f"System: {request.system_prompt}\n\nUser: {request.prompt}"
-            else:
-                full_prompt = request.prompt
+                contents.append({"role": "system", "parts": [{"text": request.system_prompt}]})
+            contents.append({"role": "user", "parts": [{"text": request.prompt}]})
             
             # Configure generation parameters
-            generation_config = genai.types.GenerationConfig(
+            config = genai.types.GenerateContentConfig(
                 temperature=request.temperature,
                 max_output_tokens=request.max_tokens,
             )
             
             if request.stop_sequences:
-                generation_config.stop_sequences = request.stop_sequences
+                config.stop_sequences = request.stop_sequences
             
-            # Generate response
-            response = self.model.generate_content(
-                full_prompt,
-                generation_config=generation_config
+            # Generate response using the new API
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config=config
             )
             
             # Extract content
-            content = response.text if response.text else ""
+            content = ""
+            if response.candidates and len(response.candidates) > 0:
+                candidate = response.candidates[0]
+                if candidate.content and candidate.content.parts:
+                    content = candidate.content.parts[0].text
             
             # Extract usage information if available
             usage = {}
@@ -71,16 +75,26 @@ class GeminiProvider(LLMProvider):
                     "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0)
                 }
             
+            # Extract metadata
+            metadata = {}
+            if response.candidates and len(response.candidates) > 0:
+                candidate = response.candidates[0]
+                metadata = {
+                    "finish_reason": getattr(candidate, 'finish_reason', None),
+                    "safety_ratings": []
+                }
+                if hasattr(candidate, 'safety_ratings') and candidate.safety_ratings:
+                    metadata["safety_ratings"] = [
+                        f"{rating.category}:{rating.probability}" 
+                        for rating in candidate.safety_ratings
+                    ]
+            
             return LLMResponse(
                 content=content,
                 provider=self.provider_name,
                 model=self.model_name,
                 usage=usage,
-                metadata={
-                    "finish_reason": getattr(response.candidates[0], 'finish_reason', None) if response.candidates else None,
-                    "safety_ratings": [rating.category.name + ":" + rating.probability.name 
-                                     for rating in response.candidates[0].safety_ratings] if response.candidates else []
-                }
+                metadata=metadata
             )
             
         except Exception as e:

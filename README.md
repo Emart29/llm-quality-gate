@@ -87,8 +87,35 @@ pip install -r requirements.txt
 
 # Configure API keys
 cp .env.example .env
-# Edit .env with your API keys (GROQ_API_KEY, OPENAI_API_KEY, etc.)
+# Edit .env with your API keys (see Environment Configuration below)
 ```
+
+### Environment Configuration
+
+LLMQ requires API keys for the LLM providers you want to use. The `.env.example` file contains comprehensive documentation for all supported providers.
+
+**Quick Setup:**
+```bash
+# 1. Copy the example file
+cp .env.example .env
+
+# 2. Edit .env and add your API keys
+# At minimum, add one provider key (e.g., GROQ_API_KEY for free usage)
+
+# 3. Test your configuration
+python -m integrations.cli.main providers
+```
+
+**Supported Providers:**
+- **Free/Open**: Groq (recommended for getting started), HuggingFace, OpenRouter
+- **Proprietary**: OpenAI, Anthropic Claude, Google Gemini
+- **Local**: Ollama, LocalAI (no API keys needed)
+
+**Provider Recommendations:**
+- **Getting Started**: Use Groq (free, fast, good models)
+- **Production**: OpenAI GPT-3.5/4 or Anthropic Claude
+- **Privacy/Cost**: Ollama with local models
+- **Experimentation**: HuggingFace for open model access
 
 ### Run Your First Evaluation
 
