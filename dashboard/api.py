@@ -31,6 +31,11 @@ class EvaluateRequest(BaseModel):
     non_deterministic: bool = False
 
 
+class CanaryRequest(EvaluateRequest):
+    canary_ratio: float = Field(default=0.25, ge=0.05, le=1.0)
+    auto_promote: bool = True
+
+
 @router.post("/evaluate")
 async def evaluate(payload: EvaluateRequest) -> Dict[str, Any]:
     if payload.providers:
@@ -120,6 +125,30 @@ async def list_runs(
 @router.get("/runs/filters")
 async def list_run_filters() -> Dict[str, Any]:
     return service.get_run_filters()
+
+
+@router.post("/runs/{run_id}/baseline")
+async def mark_run_baseline(run_id: str) -> Dict[str, Any]:
+    return service.mark_baseline(run_id)
+
+
+@router.post("/evaluate/canary")
+async def evaluate_canary(payload: CanaryRequest) -> Dict[str, Any]:
+    if not payload.provider:
+        return {"error": "provider is required"}
+    return await service.run_canary_evaluation(
+        provider=payload.provider,
+        model=payload.model,
+        dataset_path=payload.dataset,
+        config_path=payload.config,
+        canary_ratio=payload.canary_ratio,
+        auto_promote=payload.auto_promote,
+        workers=payload.workers,
+        timeout=payload.timeout,
+        no_judge=payload.no_judge,
+        no_db=payload.no_db,
+        non_deterministic=payload.non_deterministic,
+    )
 
 
 @router.get("/compare")

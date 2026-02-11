@@ -7,7 +7,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from .database import Database
-from .models import EvaluationRun, TestCaseRecord, QualityGateRecord, ProviderComparison
+from .models import EvaluationRun, TestCaseRecord, QualityGateRecord, ProviderComparison, BaselineMetric
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +29,9 @@ class EvaluationRepository:
                 total_test_cases, successful_executions, failed_executions,
                 total_execution_time, success_rate, pass_rate,
                 quality_gate_passed, overall_score,
-                task_success_score, relevance_score, hallucination_score, consistency_score,
+                task_success_score, relevance_score, hallucination_score, consistency_score, regression_detected, regression_summary,
                 configuration, created_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             [
                 run.id, run.dataset_name, run.dataset_version,
                 run.provider_name, run.model_name,
@@ -41,6 +41,7 @@ class EvaluationRepository:
                 run.quality_gate_passed, run.overall_score,
                 run.task_success_score, run.relevance_score,
                 run.hallucination_score, run.consistency_score,
+                run.regression_detected, json.dumps(run.regression_summary),
                 json.dumps(run.configuration), run.created_at,
             ],
         )
@@ -114,6 +115,67 @@ class EvaluationRepository:
             [provider, model, limit],
         )
 
+    # ── Baseline Metrics ───────────────────────────────────────────────
+
+    def get_baseline(self, provider: str, model: str, dataset_version: str) -> Optional[Dict[str, Any]]:
+        return self.db.fetchone(
+            """SELECT * FROM baseline_metrics
+               WHERE provider_name = ? AND model_name = ? AND dataset_version = ?""",
+            [provider, model, dataset_version],
+        )
+
+    def upsert_baseline(self, baseline: BaselineMetric) -> str:
+        existing = self.get_baseline(
+            baseline.provider_name,
+            baseline.model_name,
+            baseline.dataset_version,
+        )
+        if existing:
+            self.db.execute(
+                """UPDATE baseline_metrics
+                   SET overall_score = ?, task_success_score = ?, relevance_score = ?,
+                       hallucination_score = ?, consistency_score = ?, source_run_id = ?,
+                       commit_hash = ?, updated_at = ?
+                   WHERE id = ?""",
+                [
+                    baseline.overall_score,
+                    baseline.task_success_score,
+                    baseline.relevance_score,
+                    baseline.hallucination_score,
+                    baseline.consistency_score,
+                    baseline.source_run_id,
+                    baseline.commit_hash,
+                    datetime.utcnow(),
+                    existing["id"],
+                ],
+            )
+            return existing["id"]
+
+        self.db.execute(
+            """INSERT INTO baseline_metrics (
+                id, provider_name, model_name, dataset_version,
+                overall_score, task_success_score, relevance_score,
+                hallucination_score, consistency_score, source_run_id,
+                commit_hash, created_at, updated_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            [
+                baseline.id,
+                baseline.provider_name,
+                baseline.model_name,
+                baseline.dataset_version,
+                baseline.overall_score,
+                baseline.task_success_score,
+                baseline.relevance_score,
+                baseline.hallucination_score,
+                baseline.consistency_score,
+                baseline.source_run_id,
+                baseline.commit_hash,
+                baseline.created_at,
+                baseline.created_at,
+            ],
+        )
+        return baseline.id
+
     # ── Test Case Results ─────────────────────────────────────────────
 
     def save_test_case_results(self, records: List[TestCaseRecord]) -> int:
@@ -186,7 +248,13 @@ class EvaluationRepository:
 
     # ── Utilities ─────────────────────────────────────────────────────
 
-    def save_comprehensive_result(self, result_dict: Dict[str, Any], commit_hash: Optional[str] = None, branch: Optional[str] = None) -> str:
+    def save_comprehensive_result(
+        self,
+        result_dict: Dict[str, Any],
+        commit_hash: Optional[str] = None,
+        branch: Optional[str] = None,
+        regression: Optional[Dict[str, Any]] = None,
+    ) -> str:
         """Convenience: persist a ComprehensiveEvaluationResult.to_dict() in one call."""
         run_id = str(uuid.uuid4())
 
@@ -211,6 +279,8 @@ class EvaluationRepository:
             relevance_score=agg.get("relevance", {}).get("score"),
             hallucination_score=agg.get("hallucination", {}).get("score"),
             consistency_score=agg.get("consistency", {}).get("score"),
+            regression_detected=(regression or {}).get("regression_detected", False),
+            regression_summary=regression or {},
             commit_hash=commit_hash,
             branch=branch,
             configuration=result_dict.get("configuration", {}),

@@ -28,7 +28,26 @@ class EvaluationRun:
     relevance_score: Optional[float] = None
     hallucination_score: Optional[float] = None
     consistency_score: Optional[float] = None
+    regression_detected: bool = False
+    regression_summary: Dict[str, Any] = field(default_factory=dict)
     configuration: Dict[str, Any] = field(default_factory=dict)
+    created_at: datetime = field(default_factory=datetime.utcnow)
+
+
+@dataclass
+class BaselineMetric:
+    """Represents a baseline quality snapshot for regression detection."""
+    id: str
+    provider_name: str
+    model_name: str
+    dataset_version: str
+    overall_score: Optional[float] = None
+    task_success_score: Optional[float] = None
+    relevance_score: Optional[float] = None
+    hallucination_score: Optional[float] = None
+    consistency_score: Optional[float] = None
+    source_run_id: Optional[str] = None
+    commit_hash: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
 
 

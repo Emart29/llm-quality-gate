@@ -41,3 +41,9 @@ def test_evaluate_active_endpoint_shape():
     response = client.get("/api/v1/evaluate/active")
     assert response.status_code == 200
     assert "jobs" in response.json()
+
+
+def test_canary_requires_provider():
+    response = client.post("/api/v1/evaluate/canary", json={})
+    assert response.status_code == 200
+    assert "error" in response.json()

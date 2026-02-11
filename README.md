@@ -89,6 +89,12 @@ GET /api/v1/compare
 
 # Configure quality gates/settings
 GET/POST /api/v1/settings
+
+# Canary flow (run subset then optionally promote)
+POST /api/v1/evaluate/canary
+
+# Mark a run as baseline for regression detection
+POST /api/v1/runs/{run_id}/baseline
 ```
 
 ## CLI Integration (Optional)
@@ -148,9 +154,10 @@ quality_gates:
 
 The GitHub Actions workflow automatically:
 1. Runs unit tests
-2. Executes LLM evaluation on PRs
-3. Posts detailed metrics as PR comments
-4. Fails PRs when quality gates are breached
+2. Boots the FastAPI service and executes API-first evaluations on PRs
+3. Enforces metric thresholds and quality gates via API response checks
+4. Posts detailed metrics, provider info, commit hash, and regression info as PR comments
+5. Fails PRs when thresholds or quality gates are breached
 
 ## Running Tests
 

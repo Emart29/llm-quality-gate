@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS evaluation_runs (
     relevance_score       DOUBLE,
     hallucination_score   DOUBLE,
     consistency_score     DOUBLE,
+    regression_detected   BOOLEAN DEFAULT FALSE,
+    regression_summary    JSON,
     configuration   JSON,
     created_at      TIMESTAMP DEFAULT current_timestamp
 );
@@ -76,6 +78,22 @@ CREATE TABLE IF NOT EXISTS provider_comparisons (
     winner          VARCHAR,
     created_at      TIMESTAMP DEFAULT current_timestamp
 );
+
+CREATE TABLE IF NOT EXISTS baseline_metrics (
+    id              VARCHAR PRIMARY KEY,
+    provider_name   VARCHAR NOT NULL,
+    model_name      VARCHAR NOT NULL,
+    dataset_version VARCHAR NOT NULL,
+    overall_score   DOUBLE,
+    task_success_score DOUBLE,
+    relevance_score DOUBLE,
+    hallucination_score DOUBLE,
+    consistency_score DOUBLE,
+    source_run_id   VARCHAR,
+    commit_hash     VARCHAR,
+    created_at      TIMESTAMP DEFAULT current_timestamp,
+    updated_at      TIMESTAMP DEFAULT current_timestamp
+);
 """
 
 
@@ -95,6 +113,8 @@ class Database:
 
     def _init_schema(self) -> None:
         self.conn.execute(SCHEMA_SQL)
+        self.conn.execute("ALTER TABLE evaluation_runs ADD COLUMN IF NOT EXISTS regression_detected BOOLEAN DEFAULT FALSE")
+        self.conn.execute("ALTER TABLE evaluation_runs ADD COLUMN IF NOT EXISTS regression_summary JSON")
         logger.info(f"Database schema initialized at {self.db_path}")
 
     def close(self) -> None:
