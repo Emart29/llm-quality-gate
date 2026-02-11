@@ -23,7 +23,8 @@ Thank you for your interest in contributing to the LLM Quality Gate project.
 - `evals/` - Evaluation dataset, runner, metrics
 - `storage/` - Database and repository layer
 - `dashboard/` - Web UI (FastAPI + Tailwind/Chart.js)
-- `cli/` - Command-line interface
+- `integrations/cli/` - Optional API client CLI
+- `dashboard/api.py` - Central API v1 routes
 - `tests/` - Test suite
 
 ## Adding a New Provider

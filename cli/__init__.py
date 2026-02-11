@@ -1,1 +1,1 @@
-"""CLI tool for LLM Quality Gate."""
+"""Backward-compatible CLI namespace."""

@@ -9,7 +9,8 @@ A provider-agnostic evaluation framework for LLM-powered applications. Automatic
 - **Quality Gates**: Configurable thresholds with automatic pass/fail enforcement
 - **CI/CD Integration**: GitHub Actions workflow with PR comments and regression detection
 - **Web Dashboard**: Dark-themed UI with Chart.js visualizations and Tailwind CSS
-- **CLI Tool**: `llmq` commands for evaluation, comparison, and dashboard
+- **Web + API First**: FastAPI `api/v1` endpoints drive dashboard and automation
+- **CLI Integration**: optional `llmq` client that calls the API
 - **Historical Tracking**: DuckDB storage with trend analysis and provider benchmarking
 
 ## Quick Start
@@ -22,11 +23,11 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your API keys
 
-# 3. Run evaluation
-python -m cli.main eval --provider groq
+# 3. Launch dashboard + API
+python -m integrations.cli.main dashboard
 
-# 4. Launch dashboard
-python -m cli.main dashboard
+# 4. Trigger evaluation through API client
+python -m integrations.cli.main eval --provider groq
 ```
 
 ## Project Structure
@@ -56,11 +57,14 @@ llm-quality-gate/
 │   ├── database.py        # DuckDB schema & connection
 │   ├── models.py          # Data models
 │   └── repository.py      # CRUD operations
-├── dashboard/              # Web UI
-│   ├── app.py             # FastAPI backend
+├── dashboard/              # Web UI + API
+│   ├── app.py             # FastAPI app + static hosting
+│   ├── api.py             # Central /api/v1 router
 │   └── static/index.html  # Tailwind + Chart.js frontend
-├── cli/                    # Command-line interface
-│   └── main.py            # llmq CLI tool
+├── integrations/          # Optional external integrations
+│   └── cli/main.py        # API client for llmq commands
+├── cli/                   # Backward-compatible shim
+│   └── main.py
 ├── ci/                     # CI/CD integration
 │   └── runner.py          # CI evaluation runner
 ├── tests/                  # Test suite
@@ -68,23 +72,36 @@ llm-quality-gate/
 └── .github/workflows/     # GitHub Actions
 ```
 
-## CLI Commands
+## API Endpoints (Web-First)
 
 ```bash
-# Initialize project
-python -m cli.main init
+# Trigger evaluation
+POST /api/v1/evaluate
 
-# Run evaluation
-python -m cli.main eval --provider groq --model llama3-8b-8192
+# List providers & models
+GET /api/v1/providers
 
-# Launch dashboard
-python -m cli.main dashboard --port 8000
+# Retrieve historical runs
+GET /api/v1/runs
 
-# Compare providers
-python -m cli.main compare
+# Compare provider metrics
+GET /api/v1/compare
 
-# Validate dataset
-python -m cli.main validate --suggestions
+# Configure quality gates/settings
+GET/POST /api/v1/settings
+```
+
+## CLI Integration (Optional)
+
+```bash
+# Run evaluation via API
+python -m integrations.cli.main eval --provider groq
+
+# Compare providers via API
+python -m integrations.cli.main compare
+
+# List providers
+python -m integrations.cli.main providers
 ```
 
 ## Configuration
