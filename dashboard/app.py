@@ -143,6 +143,7 @@ async def dashboard_overview():
     avg_ts = sum(r.get("task_success_score", 0) or 0 for r in runs) / total
     avg_rel = sum(r.get("relevance_score", 0) or 0 for r in runs) / total
     avg_hal = sum(r.get("hallucination_score", 0) or 0 for r in runs) / total
+    avg_cons = sum(r.get("consistency_score", 0) or 0 for r in runs) / total
     gate_pass = sum(1 for r in runs if r.get("quality_gate_passed")) / total
 
     # Provider summary
@@ -165,6 +166,7 @@ async def dashboard_overview():
         "avg_task_success": round(avg_ts, 3),
         "avg_relevance": round(avg_rel, 3),
         "avg_hallucination": round(avg_hal, 3),
+        "avg_consistency": round(avg_cons, 3),
         "quality_gate_pass_rate": round(gate_pass, 3),
         "providers": providers,
         "recent_runs": runs[:10],

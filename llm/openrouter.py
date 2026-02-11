@@ -2,7 +2,7 @@
 
 import httpx
 from typing import Dict, Any
-from .base import LLMProvider, LLMRequest, LLMResponse
+from .base import LLMProvider, LLMRequest, LLMResponse, ProviderNotConfiguredError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,8 +17,20 @@ class OpenRouterProvider(LLMProvider):
         self.model_name = config.get("model", "microsoft/wizardlm-2-8x22b")
         self.site_url = config.get("site_url", "https://llm-quality-gate")
         self.app_name = config.get("app_name", "LLM Quality Gate")
+        self.timeout = config.get("timeout", 60)
+        self._client = None
         
-        self.client = httpx.AsyncClient(
+        # Initialize client if enabled
+        if self.enabled:
+            self._initialize_client()
+    
+    def _initialize_client(self):
+        """Initialize HTTP client with proper headers."""
+        # Only create client if we have an API key
+        if not self.api_key:
+            return
+            
+        self._client = httpx.AsyncClient(
             base_url=self.base_url,
             headers={
                 "Authorization": f"Bearer {self.api_key}",
@@ -26,11 +38,20 @@ class OpenRouterProvider(LLMProvider):
                 "HTTP-Referer": self.site_url,
                 "X-Title": self.app_name
             },
-            timeout=config.get("timeout", 60)
+            timeout=self.timeout
         )
+        
+    @property
+    def client(self):
+        """Get HTTP client, ensuring provider is enabled."""
+        self.ensure_enabled()
+        return self._client
     
     async def generate(self, request: LLMRequest) -> LLMResponse:
         """Generate response using OpenRouter API."""
+        # Ensure provider is enabled before making API calls
+        self.ensure_enabled()
+        
         try:
             # Build messages array (OpenAI-compatible format)
             messages = []
@@ -99,4 +120,5 @@ class OpenRouterProvider(LLMProvider):
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.client.aclose()
+        if self._client:
+            await self._client.aclose()

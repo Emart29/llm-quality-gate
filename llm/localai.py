@@ -2,7 +2,7 @@
 
 import httpx
 from typing import Dict, Any
-from .base import LLMProvider, LLMRequest, LLMResponse
+from .base import LLMProvider, LLMRequest, LLMResponse, ProviderNotConfiguredError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,20 +15,33 @@ class LocalAIProvider(LLMProvider):
         super().__init__(config)
         self.base_url = config.get("base_url", "http://localhost:8080")
         self.model_name = config.get("model", "gpt-3.5-turbo")
+        self.timeout = config.get("timeout", 120)  # Local models can be slower
+        self._client = None
         
-        self.client = httpx.AsyncClient(
-            base_url=self.base_url,
-            headers={"Content-Type": "application/json"},
-            timeout=config.get("timeout", 120)  # Local models can be slower
-        )
-    
+        # Initialize client (always enabled for LocalAI)
+        self._initialize_client()
+        
     def _get_api_key(self) -> str:
         """LocalAI may or may not require API key depending on setup."""
         import os
         api_key_env = self.config.get("api_key_env")
         if api_key_env:
-            return os.getenv(api_key_env, "local")
-        return "local"
+            api_key = os.getenv(api_key_env)
+            return api_key.strip() if api_key else "local"
+        return "local"  # Default to local if no env var specified
+    
+    def _initialize_client(self):
+        """Initialize HTTP client for LocalAI."""
+        self._client = httpx.AsyncClient(
+            base_url=self.base_url,
+            headers={"Content-Type": "application/json"},
+            timeout=self.timeout
+        )
+        
+    @property
+    def client(self):
+        """Get HTTP client."""
+        return self._client
     
     async def generate(self, request: LLMRequest) -> LLMResponse:
         """Generate response using LocalAI API (OpenAI-compatible)."""
@@ -124,4 +137,5 @@ class LocalAIProvider(LLMProvider):
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.client.aclose()
+        if self._client:
+            await self._client.aclose()

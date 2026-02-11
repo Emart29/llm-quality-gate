@@ -129,6 +129,15 @@ evaluation:
   # Number of runs for consistency metric
   # Higher = more accurate consistency measurement, slower evaluation
   consistency_runs: 3
+  
+  # CI Lightweight Mode - Automatically enabled in CI environments
+  # When enabled:
+  # - Uses mock embeddings instead of real sentence-transformers
+  # - Reduces consistency runs to 2 maximum
+  # - Skips heavy similarity computations
+  # - Uses heuristic-based metrics for faster execution
+  # Set to true to force lightweight mode even outside CI
+  ci_lightweight_mode: false
 
 # ── Quality Gate Thresholds ────────────────────────────────────────────────
 # These thresholds determine pass/fail for quality gates

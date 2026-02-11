@@ -10,3 +10,4 @@ build/
 *.duckdb.wal
 evaluation_results/
 dataset_versions/
+venv

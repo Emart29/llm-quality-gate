@@ -1,333 +1,478 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LLMQ Dashboard</title>
+  <title>LLMQ Dashboard — LLM Quality Gate</title>
+  <meta name="description"
+    content="LLMQ Dashboard: Monitor LLM evaluation metrics, quality gates, regressions, and provider comparisons." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
           colors: {
-            brand:  { DEFAULT: '#6366f1', light: '#818cf8', dark: '#4f46e5' },
-            surface: { 1: '#0f172a', 2: '#1e293b', 3: '#334155' },
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', DEFAULT: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81' },
+            surface: { 1: '#0b1120', 2: '#111827', 3: '#1e293b', 4: '#334155', 5: '#475569' },
+            cyan: { 400: '#22d3ee', 500: '#06b6d4' },
+          },
+          boxShadow: {
+            glow: '0 0 20px rgba(99,102,241,0.15)',
+            'glow-lg': '0 0 40px rgba(99,102,241,0.2)',
+            'glow-cyan': '0 0 20px rgba(34,211,238,0.12)',
           }
         }
       }
     }
   </script>
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
 </head>
-<body class="bg-surface-1 text-gray-200 min-h-screen">
-  <nav class="bg-surface-2 border-b border-surface-3 px-4 sm:px-6 py-3 sticky top-0 z-30">
-    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center font-bold text-white">Q</div>
-        <h1 class="text-lg font-semibold">LLMQ Dashboard</h1>
+
+<body class="bg-surface-1 text-gray-200 font-sans min-h-screen flex overflow-hidden">
+
+  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-container">
+        <img src="/static/img/logo.svg" alt="LLMQ" class="logo-img" />
       </div>
-      <div id="toast" class="hidden text-xs px-3 py-1 rounded bg-surface-3 border border-surface-3"></div>
+      <div class="logo-text">
+        <span
+          class="text-base font-bold bg-gradient-to-r from-brand-400 to-cyan-400 bg-clip-text text-transparent">LLMQ</span>
+        <span class="text-[10px] text-gray-500 font-medium tracking-wider uppercase">Quality Gate</span>
+      </div>
     </div>
-  </nav>
 
-  <main class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-    <section class="grid lg:grid-cols-3 gap-4">
-      <div class="lg:col-span-2 bg-surface-2 border border-surface-3 rounded-xl p-4">
-        <h2 class="font-semibold mb-3">Provider & Model Management</h2>
-        <div class="grid md:grid-cols-2 gap-4">
-          <label class="text-sm">Generator Provider
-            <select id="generator-provider" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-3 py-2"></select>
-          </label>
-          <label class="text-sm">Generator Model
-            <input id="generator-model" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-3 py-2" />
-          </label>
-          <label class="text-sm">Judge Provider
-            <select id="judge-provider" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-3 py-2"></select>
-          </label>
-          <label class="text-sm">Judge Model
-            <input id="judge-model" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-3 py-2" />
-          </label>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="overview" id="nav-overview">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path
+            d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+        </svg>
+        <span>Overview</span>
+      </a>
+      <a href="#" class="nav-item" data-page="runs" id="nav-runs">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd"
+            d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+            clip-rule="evenodd" />
+        </svg>
+        <span>Runs</span>
+      </a>
+      <a href="#" class="nav-item" data-page="compare" id="nav-compare">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path
+            d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+        </svg>
+        <span>Compare</span>
+      </a>
+      <a href="#" class="nav-item" data-page="ci-history" id="nav-ci-history">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd"
+            d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
+            clip-rule="evenodd" />
+        </svg>
+        <span>CI History</span>
+      </a>
+      <a href="#" class="nav-item" data-page="settings" id="nav-settings">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd"
+            d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+            clip-rule="evenodd" />
+        </svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="text-[10px] text-gray-600 text-center">
+        LLMQ v1.0 · Local Dev
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+  <div class="flex-1 flex flex-col min-h-screen overflow-hidden">
+
+    <!-- ── TOP BAR ── -->
+    <header class="topbar">
+      <div class="flex items-center gap-3">
+        <button id="sidebar-toggle" class="lg:hidden p-1.5 rounded-lg hover:bg-surface-3 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <h2 id="page-title" class="text-sm font-semibold text-gray-300">Overview</h2>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Provider Badge -->
+        <div id="provider-badge" class="badge badge-provider hidden">
+          <span class="badge-dot bg-brand-400"></span>
+          <span id="provider-badge-text">--</span>
         </div>
-        <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-          <label class="text-xs">Task Success
-            <input id="th-task" type="number" min="0" max="1" step="0.01" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-2 py-1.5" />
-          </label>
-          <label class="text-xs">Relevance
-            <input id="th-rel" type="number" min="0" max="1" step="0.01" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-2 py-1.5" />
-          </label>
-          <label class="text-xs">Hallucination
-            <input id="th-hal" type="number" min="0" max="1" step="0.01" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-2 py-1.5" />
-          </label>
-          <label class="text-xs">Consistency
-            <input id="th-cons" type="number" min="0" max="1" step="0.01" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-2 py-1.5" />
-          </label>
+        <!-- Model Badge -->
+        <div id="model-badge" class="badge badge-model hidden">
+          <svg class="w-3 h-3 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+          </svg>
+          <span id="model-badge-text">--</span>
         </div>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <button onclick="saveSettings()" class="bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded text-sm">Save Settings</button>
-          <button onclick="startEvaluation()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm">Start Evaluation</button>
+        <!-- Gate Status -->
+        <div id="gate-status" class="gate-indicator gate-unknown">
+          <span class="gate-dot"></span>
+          <span id="gate-status-text">No Data</span>
         </div>
       </div>
+    </header>
 
-      <div class="bg-surface-2 border border-surface-3 rounded-xl p-4">
-        <h2 class="font-semibold mb-3">Live Evaluations</h2>
-        <div id="live-jobs" class="space-y-2 text-sm"></div>
+    <!-- ── CI MODE BANNER ── -->
+    <div id="ci-banner" class="ci-banner hidden">
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd"
+          d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633z" clip-rule="evenodd" />
+      </svg>
+      <span>CI Mode Active</span>
+      <span id="ci-mode-indicator" class="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded">Lightweight
+        Metrics</span>
+    </div>
+
+    <!-- ── PAGE CONTAINER ── -->
+    <main id="main-content" class="flex-1 overflow-y-auto p-4 sm:p-6">
+
+      <!-- ════════════════ OVERVIEW PAGE ════════════════ -->
+      <div id="page-overview" class="page active">
+        <!-- Metric Cards Row -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          <div class="metric-card" id="mc-task-success">
+            <div class="metric-card-header">
+              <span class="metric-label">Task Success</span>
+              <div class="metric-trend" id="trend-task-success"></div>
+            </div>
+            <div class="metric-value text-emerald-400" id="kpi-task">--</div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill bg-emerald-400" id="bar-task" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="metric-card" id="mc-relevance">
+            <div class="metric-card-header">
+              <span class="metric-label">Relevance</span>
+              <div class="metric-trend" id="trend-relevance"></div>
+            </div>
+            <div class="metric-value text-blue-400" id="kpi-rel">--</div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill bg-blue-400" id="bar-rel" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="metric-card" id="mc-hallucination">
+            <div class="metric-card-header">
+              <span class="metric-label">Hallucination</span>
+              <div class="metric-trend" id="trend-hallucination"></div>
+            </div>
+            <div class="metric-value text-rose-400" id="kpi-hal">--</div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill bg-rose-400" id="bar-hal" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="metric-card" id="mc-consistency">
+            <div class="metric-card-header">
+              <span class="metric-label">Consistency</span>
+              <div class="metric-trend" id="trend-consistency"></div>
+            </div>
+            <div class="metric-value text-violet-400" id="kpi-cons">--</div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill bg-violet-400" id="bar-cons" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="metric-card metric-card-accent" id="mc-gate-rate">
+            <div class="metric-card-header">
+              <span class="metric-label">Gate Pass Rate</span>
+            </div>
+            <div class="metric-value" id="kpi-gate">--</div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill bg-brand-400" id="bar-gate" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Score Gauge + Provider Badges -->
+        <div class="grid lg:grid-cols-3 gap-4 mb-6">
+          <div class="card lg:col-span-1">
+            <h3 class="card-title">Overall Score</h3>
+            <div class="gauge-container">
+              <canvas id="gauge-canvas" width="220" height="220"></canvas>
+              <div class="gauge-label" id="gauge-label">--</div>
+            </div>
+          </div>
+          <div class="card lg:col-span-2">
+            <h3 class="card-title">Last Run Summary</h3>
+            <div id="last-run-summary" class="space-y-3">
+              <div class="text-sm text-gray-500">Loading...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid lg:grid-cols-2 gap-4 mb-6">
+          <div class="card">
+            <h3 class="card-title">Metrics Over Time</h3>
+            <div class="chart-container">
+              <canvas id="chart-trends"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Provider Comparison</h3>
+            <div class="chart-container">
+              <canvas id="chart-compare"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Jobs -->
+        <div class="card">
+          <h3 class="card-title">Live Evaluations</h3>
+          <div id="live-jobs" class="space-y-2"></div>
+        </div>
       </div>
-    </section>
 
-    <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><p class="text-xs text-gray-400">Task Success</p><p id="kpi-task" class="text-2xl font-bold text-emerald-400">--</p></div>
-      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><p class="text-xs text-gray-400">Relevance</p><p id="kpi-rel" class="text-2xl font-bold text-blue-400">--</p></div>
-      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><p class="text-xs text-gray-400">Hallucination</p><p id="kpi-hal" class="text-2xl font-bold text-red-400">--</p></div>
-      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><p class="text-xs text-gray-400">Gate Pass Rate</p><p id="kpi-gate" class="text-2xl font-bold text-brand-light">--</p></div>
-    </section>
+      <!-- ════════════════ RUNS PAGE ════════════════ -->
+      <div id="page-runs" class="page">
+        <!-- Filters -->
+        <div class="card mb-4">
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="filter-group">
+              <label class="filter-label">Provider</label>
+              <select id="filter-provider" class="filter-select">
+                <option value="">All Providers</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Model</label>
+              <select id="filter-model" class="filter-select">
+                <option value="">All Models</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Dataset</label>
+              <select id="filter-dataset" class="filter-select">
+                <option value="">All Datasets</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Gate</label>
+              <select id="filter-status" class="filter-select">
+                <option value="">Pass / Fail</option>
+                <option value="true">PASS</option>
+                <option value="false">FAIL</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Commit</label>
+              <select id="filter-commit" class="filter-select">
+                <option value="">All Commits</option>
+              </select>
+            </div>
+            <button onclick="LLMQ.loadRuns()" class="btn btn-primary">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Apply Filters
+            </button>
+          </div>
+        </div>
 
-    <section class="grid xl:grid-cols-2 gap-4">
-      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><h3 class="text-sm font-semibold mb-3">Metrics Over Time</h3><canvas id="chart-trends" height="220"></canvas></div>
-      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><h3 class="text-sm font-semibold mb-3">Side-by-Side Provider Comparison</h3><canvas id="chart-compare" height="220"></canvas></div>
-    </section>
-
-    <section class="bg-surface-2 rounded-xl p-4 border border-surface-3">
-      <h2 class="font-semibold mb-3">Historical Run Search</h2>
-      <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4 text-sm">
-        <select id="filter-provider" class="bg-surface-3 border border-surface-3 rounded px-3 py-2"><option value="">All Providers</option></select>
-        <select id="filter-model" class="bg-surface-3 border border-surface-3 rounded px-3 py-2"><option value="">All Models</option></select>
-        <select id="filter-dataset" class="bg-surface-3 border border-surface-3 rounded px-3 py-2"><option value="">All Dataset Versions</option></select>
-        <select id="filter-status" class="bg-surface-3 border border-surface-3 rounded px-3 py-2"><option value="">Pass / Fail</option><option value="true">PASS</option><option value="false">FAIL</option></select>
-        <select id="filter-commit" class="bg-surface-3 border border-surface-3 rounded px-3 py-2"><option value="">All Commits</option></select>
+        <!-- Sortable Runs Table -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="card-title mb-0">Evaluation Runs</h3>
+            <span id="runs-count" class="text-xs text-gray-500">0 runs</span>
+          </div>
+          <div class="table-container">
+            <table class="data-table" id="runs-table">
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="provider">Provider / Model <span class="sort-icon">↕</span></th>
+                  <th class="sortable" data-sort="dataset">Dataset <span class="sort-icon">↕</span></th>
+                  <th class="sortable" data-sort="commit">Commit <span class="sort-icon">↕</span></th>
+                  <th class="sortable text-center" data-sort="score">Score <span class="sort-icon">↕</span></th>
+                  <th class="sortable text-center" data-sort="gate">Gate <span class="sort-icon">↕</span></th>
+                  <th class="text-center">Regression</th>
+                  <th class="sortable" data-sort="date">Timestamp <span class="sort-icon">↕</span></th>
+                </tr>
+              </thead>
+              <tbody id="runs-body"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      <button onclick="loadRuns()" class="mb-3 bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm">Apply Filters</button>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead><tr class="text-gray-400 border-b border-surface-3"><th class="text-left py-2 px-2">Provider/Model</th><th class="text-left py-2 px-2">Dataset</th><th class="text-left py-2 px-2">Commit</th><th class="text-center py-2 px-2">Overall</th><th class="text-center py-2 px-2">Gate</th><th class="text-center py-2 px-2">Regression</th><th class="text-left py-2 px-2">Date</th></tr></thead>
-          <tbody id="runs-body"></tbody>
-        </table>
+
+      <!-- ════════════════ RUN DETAIL MODAL ════════════════ -->
+      <div id="run-detail-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="text-lg font-semibold">Run Details</h3>
+            <button onclick="LLMQ.closeModal()" class="modal-close">&times;</button>
+          </div>
+          <div id="run-detail-body" class="modal-body">
+            <div class="text-gray-500">Loading...</div>
+          </div>
+        </div>
       </div>
-    </section>
 
-    <section class="bg-surface-2 rounded-xl p-4 border border-surface-3">
-      <h2 class="font-semibold mb-3">Per-test Case Drill-down</h2>
-      <div id="drilldown" class="space-y-3"></div>
-    </section>
-  </main>
+      <!-- ════════════════ COMPARE PAGE ════════════════ -->
+      <div id="page-compare" class="page">
+        <div class="grid lg:grid-cols-2 gap-4 mb-6">
+          <div class="card">
+            <h3 class="card-title">Average Scores by Provider</h3>
+            <div class="chart-container">
+              <canvas id="chart-compare-detail"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Metric Breakdown</h3>
+            <div class="chart-container">
+              <canvas id="chart-radar"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="card-title mb-3">Provider Comparison Table</h3>
+          <div class="table-container">
+            <table class="data-table" id="compare-table">
+              <thead>
+                <tr>
+                  <th>Provider / Model</th>
+                  <th class="text-center">Runs</th>
+                  <th class="text-center">Overall</th>
+                  <th class="text-center">Task Success</th>
+                  <th class="text-center">Relevance</th>
+                  <th class="text-center">Hallucination</th>
+                  <th class="text-center">Gate Rate</th>
+                  <th class="text-center">Trend</th>
+                </tr>
+              </thead>
+              <tbody id="compare-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-<script>
-let trendsChart, compareChart;
-let poller;
+      <!-- ════════════════ CI HISTORY PAGE ════════════════ -->
+      <div id="page-ci-history" class="page">
+        <div class="card mb-4">
+          <h3 class="card-title">Quality Gate History</h3>
+          <div class="chart-container">
+            <canvas id="chart-ci-timeline"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="card-title mb-3">Gate Events</h3>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Run ID</th>
+                  <th class="text-center">Result</th>
+                  <th class="text-center">Overall Score</th>
+                  <th>Failed Metrics</th>
+                  <th>Commit</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="ci-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-function notify(message, level='info') {
-  const toast = document.getElementById('toast');
-  toast.className = `text-xs px-3 py-1 rounded border ${level==='pass' ? 'bg-emerald-900 text-emerald-200 border-emerald-700' : level==='fail' ? 'bg-red-900 text-red-200 border-red-700' : 'bg-surface-3 border-surface-3'}`;
-  toast.textContent = message;
-  toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 3000);
-}
+      <!-- ════════════════ SETTINGS PAGE ════════════════ -->
+      <div id="page-settings" class="page">
+        <div class="grid lg:grid-cols-2 gap-4">
+          <div class="card">
+            <h3 class="card-title mb-4">Provider Configuration</h3>
+            <div class="space-y-4">
+              <div class="setting-group">
+                <label class="setting-label">Generator Provider</label>
+                <select id="generator-provider" class="setting-input"></select>
+              </div>
+              <div class="setting-group">
+                <label class="setting-label">Generator Model</label>
+                <input id="generator-model" class="setting-input" placeholder="e.g. llama-3.1-8b-instant" />
+              </div>
+              <div class="setting-group">
+                <label class="setting-label">Judge Provider</label>
+                <select id="judge-provider" class="setting-input"></select>
+              </div>
+              <div class="setting-group">
+                <label class="setting-label">Judge Model</label>
+                <input id="judge-model" class="setting-input" placeholder="e.g. gpt-3.5-turbo" />
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3 class="card-title mb-4">Quality Gate Thresholds</h3>
+            <div class="space-y-4">
+              <div class="setting-group">
+                <label class="setting-label">Task Success Threshold</label>
+                <input id="th-task" type="number" min="0" max="1" step="0.01" class="setting-input" />
+              </div>
+              <div class="setting-group">
+                <label class="setting-label">Relevance Threshold</label>
+                <input id="th-rel" type="number" min="0" max="1" step="0.01" class="setting-input" />
+              </div>
+              <div class="setting-group">
+                <label class="setting-label">Hallucination Threshold</label>
+                <input id="th-hal" type="number" min="0" max="1" step="0.01" class="setting-input" />
+              </div>
+              <div class="setting-group">
+                <label class="setting-label">Consistency Threshold</label>
+                <input id="th-cons" type="number" min="0" max="1" step="0.01" class="setting-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-3 mt-6">
+          <button onclick="LLMQ.saveSettings()" class="btn btn-primary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Save Settings
+          </button>
+          <button onclick="LLMQ.startEvaluation()" class="btn btn-success">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            </svg>
+            Start Evaluation
+          </button>
+        </div>
+      </div>
 
-async function loadSettings() {
-  const [providersRes, settingsRes] = await Promise.all([fetch('/api/v1/providers'), fetch('/api/v1/settings')]);
-  const providersData = await providersRes.json();
-  const settings = await settingsRes.json();
-
-  const providerNames = (providersData.providers || []).map(p => p.name);
-  const providerOptions = providerNames.map(p => `<option value="${p}">${p}</option>`).join('');
-  document.getElementById('generator-provider').innerHTML = providerOptions;
-  document.getElementById('judge-provider').innerHTML = providerOptions;
-
-  document.getElementById('generator-provider').value = settings.roles?.generator?.provider || providerNames[0] || '';
-  document.getElementById('judge-provider').value = settings.roles?.judge?.provider || providerNames[0] || '';
-  document.getElementById('generator-model').value = settings.roles?.generator?.model || '';
-  document.getElementById('judge-model').value = settings.roles?.judge?.model || '';
-  document.getElementById('th-task').value = settings.quality_gates?.task_success_threshold ?? 0.8;
-  document.getElementById('th-rel').value = settings.quality_gates?.relevance_threshold ?? 0.7;
-  document.getElementById('th-hal').value = settings.quality_gates?.hallucination_threshold ?? 0.1;
-  document.getElementById('th-cons').value = settings.quality_gates?.consistency_threshold ?? 0.8;
-}
-
-async function saveSettings() {
-  const payload = {
-    roles: {
-      generator: { provider: value('generator-provider'), model: value('generator-model') },
-      judge: { provider: value('judge-provider'), model: value('judge-model') },
-    },
-    quality_gates: {
-      task_success_threshold: num('th-task'),
-      relevance_threshold: num('th-rel'),
-      hallucination_threshold: num('th-hal'),
-      consistency_threshold: num('th-cons'),
-    },
-  };
-  await fetch('/api/v1/settings', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-  notify('Settings saved.');
-}
-
-async function startEvaluation() {
-  const payload = { provider: value('generator-provider'), model: value('generator-model') };
-  const res = await fetch('/api/v1/evaluate/start', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
-  const data = await res.json();
-  if (data.job_id) notify(`Evaluation started: ${data.job_id.slice(0,8)}`);
-  await loadLiveJobs();
-}
-
-async function loadLiveJobs() {
-  const res = await fetch('/api/v1/evaluate/active');
-  const data = await res.json();
-  const jobs = data.jobs || [];
-  const div = document.getElementById('live-jobs');
-  if (!jobs.length) {
-    div.innerHTML = '<p class="text-gray-400">No active runs.</p>';
-    return;
-  }
-  div.innerHTML = jobs.map(j => {
-    const pct = j.total ? Math.round((j.progress / j.total) * 100) : 0;
-    return `<div class="bg-surface-3 rounded p-3"><p class="font-medium">${j.provider}/${j.model || '-'}</p><p class="text-xs text-gray-400 mb-2">${j.job_id.slice(0,8)} • ${j.progress}/${j.total}</p><div class="h-2 bg-surface-2 rounded overflow-hidden"><div class="h-full bg-brand" style="width:${pct}%"></div></div></div>`;
-  }).join('');
-}
-
-async function loadOverview() {
-  const res = await fetch('/api/overview');
-  const data = await res.json();
-  text('kpi-task', pct(data.avg_task_success));
-  text('kpi-rel', pct(data.avg_relevance));
-  text('kpi-hal', pct(data.avg_hallucination));
-  text('kpi-gate', pct(data.quality_gate_pass_rate, 0));
-  renderCharts(data.recent_runs || []);
-}
-
-function renderCharts(runs) {
-  const labels = runs.map((_, i) => `Run ${i + 1}`).reverse();
-  const overall = runs.map(r => (r.overall_score || 0) * 100).reverse();
-  const task = runs.map(r => (r.task_success_score || 0) * 100).reverse();
-  if (trendsChart) trendsChart.destroy();
-  trendsChart = new Chart(document.getElementById('chart-trends'), {
-    type: 'line',
-    data: { labels, datasets: [
-      { label: 'Overall', data: overall, borderColor: '#818cf8', tension: .3 },
-      { label: 'Task', data: task, borderColor: '#34d399', tension: .3 },
-    ]},
-    options: chartOpts()
-  });
-
-  const grouped = {};
-  runs.forEach(r => {
-    const key = `${r.provider_name}/${r.model_name}`;
-    grouped[key] = grouped[key] || [];
-    grouped[key].push(r.overall_score || 0);
-  });
-  const compareLabels = Object.keys(grouped);
-  const compareData = compareLabels.map(k => grouped[k].reduce((a,b)=>a+b,0)/grouped[k].length*100);
-  if (compareChart) compareChart.destroy();
-  compareChart = new Chart(document.getElementById('chart-compare'), {
-    type: 'bar',
-    data: { labels: compareLabels, datasets: [{label:'Avg Overall', data: compareData, backgroundColor:'#60a5fa'}]},
-    options: chartOpts()
-  });
-}
-
-async function loadFilters() {
-  const [v1Res, legacyRes] = await Promise.all([fetch('/api/v1/runs/filters'), fetch('/api/run-filters')]);
-  const data = v1Res.ok ? await v1Res.json() : await legacyRes.json();
-  hydrateSelect('filter-provider', data.providers || []);
-  hydrateSelect('filter-model', data.models || []);
-  hydrateSelect('filter-dataset', data.dataset_versions || []);
-  hydrateSelect('filter-commit', data.commit_hashes || []);
-}
-
-async function loadRuns() {
-  const params = new URLSearchParams({ limit: '80' });
-  if (value('filter-provider')) params.set('provider', value('filter-provider'));
-  if (value('filter-model')) params.set('model', value('filter-model'));
-  if (value('filter-dataset')) params.set('dataset_version', value('filter-dataset'));
-  if (value('filter-status')) params.set('quality_gate_passed', value('filter-status'));
-  if (value('filter-commit')) params.set('commit_hash', value('filter-commit'));
-
-  const res = await fetch(`/api/v1/runs?${params.toString()}`);
-  const data = await res.json();
-  const runs = data.runs || [];
-  const tbody = document.getElementById('runs-body');
-  tbody.innerHTML = runs.map((r, idx) => {
-    const prev = runs.slice(idx + 1).find(x => x.provider_name === r.provider_name && x.model_name === r.model_name);
-    const delta = prev ? ((r.overall_score || 0) - (prev.overall_score || 0)) : null;
-    const regression = r.regression_detected || (delta !== null && delta < -0.03);
-    return `<tr class="border-b border-surface-3 hover:bg-surface-3/50 cursor-pointer" onclick="loadRunDetails('${r.id}')">
-      <td class="py-2 px-2">${r.provider_name}/${r.model_name}</td>
-      <td class="py-2 px-2 text-gray-400">${r.dataset_version || '-'}</td>
-      <td class="py-2 px-2 font-mono text-xs text-gray-400">${(r.commit_hash || '-').slice(0,8)}</td>
-      <td class="py-2 px-2 text-center">${pct(r.overall_score)}</td>
-      <td class="py-2 px-2 text-center"><span class="px-2 py-0.5 rounded text-xs ${r.quality_gate_passed ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'}">${r.quality_gate_passed ? 'PASS' : 'FAIL'}</span></td>
-      <td class="py-2 px-2 text-center">${delta === null ? '-' : `<span class="${regression ? 'text-red-400' : 'text-emerald-400'}">${(delta * 100).toFixed(1)}%</span>`}${regression ? ' ⚠️' : ''}</td>
-      <td class="py-2 px-2 text-xs text-gray-400">${new Date(r.created_at).toLocaleString()}</td>
-    </tr>`;
-  }).join('');
-
-  const latest = runs[0];
-  if (latest?.quality_gate_passed === true) notify(`Run ${latest.id.slice(0,8)} passed quality gate`, 'pass');
-  if (latest?.quality_gate_passed === false) notify(`Run ${latest.id.slice(0,8)} failed quality gate`, 'fail');
-  if (latest?.regression_detected === true) notify(`Regression detected on run ${latest.id.slice(0,8)}`, 'fail');
-}
-
-async function loadRunDetails(runId) {
-  const res = await fetch(`/api/runs/${runId}`);
-  const data = await res.json();
-  const rows = (data.test_cases || []).slice(0, 12);
-  const run = data.run || {};
-  const container = document.getElementById('drilldown');
-  container.innerHTML = `<div class="mb-3 text-sm flex items-center justify-between"><div>
-    <span class="text-gray-400">Run:</span> <span class="font-mono">${run.id || runId}</span>
-    ${run.regression_detected ? '<span class="ml-2 px-2 py-0.5 rounded text-xs bg-red-900 text-red-300">Regression</span>' : ''}
+    </main>
   </div>
-  <button onclick="markBaseline('${runId}')" class="text-xs bg-brand hover:bg-brand-dark px-2 py-1 rounded">Mark as Baseline</button></div>` + (rows.map((tc, idx) => `
-    <details class="bg-surface-3 rounded p-3" ${idx === 0 ? 'open' : ''}>
-      <summary class="cursor-pointer text-sm"><span class="font-mono text-xs mr-2">${tc.test_case_id}</span> ${tc.success ? '✅' : '❌'} ${tc.task_type || ''}</summary>
-      <div class="mt-2 text-xs text-gray-300 space-y-1">
-        <p><span class="text-gray-400">Prompt:</span> ${escapeHtml(tc.input_prompt || '')}</p>
-        <p><span class="text-gray-400">Output:</span> ${escapeHtml(tc.generated_output || '')}</p>
-        <p><span class="text-gray-400">Task/Relevance/Hallucination:</span> ${pct(tc.task_success_score)} / ${pct(tc.relevance_score)} / ${pct(tc.hallucination_score)}</p>
-      </div>
-    </details>
-  `).join('') || '<p class="text-gray-400">No test case details available.</p>');
-}
 
-async function markBaseline(runId) {
-  const res = await fetch(`/api/v1/runs/${runId}/baseline`, { method: 'POST' });
-  const data = await res.json();
-  if (data.error) {
-    notify(`Failed to set baseline: ${data.error}`, 'fail');
-    return;
-  }
-  notify(`Baseline set for run ${runId.slice(0,8)}`, 'pass');
-}
+  <!-- ── Toast Notification ── -->
+  <div id="toast-container" class="toast-container"></div>
 
-function chartOpts() {
-  return {
-    responsive: true,
-    plugins: { legend: { labels: { color: '#94a3b8' } } },
-    scales: {
-      x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
-      y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' }, min: 0, max: 100 },
-    }
-  };
-}
-
-function hydrateSelect(id, values) {
-  const el = document.getElementById(id);
-  const first = el.querySelector('option').outerHTML;
-  el.innerHTML = first + values.map(v => `<option value="${v}">${v}</option>`).join('');
-}
-function value(id) { return document.getElementById(id).value; }
-function num(id) { return Number(document.getElementById(id).value); }
-function text(id, v) { document.getElementById(id).textContent = v; }
-function pct(v, d=1) { return `${((v || 0) * 100).toFixed(d)}%`; }
-function escapeHtml(input) { return String(input).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-async function boot() {
-  await Promise.all([loadSettings(), loadOverview(), loadFilters(), loadRuns(), loadLiveJobs()]);
-  poller = setInterval(async () => {
-    await loadLiveJobs();
-    await loadOverview();
-    await loadRuns();
-  }, 8000);
-}
-boot();
-</script>
+  <!-- ── Scripts ── -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/state.js"></script>
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/components.js"></script>
+  <script src="/static/js/pages.js"></script>
+  <script src="/static/js/app.js"></script>
 </body>
+
 </html>

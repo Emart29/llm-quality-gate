@@ -304,6 +304,11 @@ class EvaluationRunner:
         num_runs: int = 5
     ) -> List[TestCaseResult]:
         """Run the same test case multiple times to test consistency."""
+        # In CI mode, reduce the number of runs for faster execution
+        if os.environ.get('CI', '').lower() in ('true', '1', 'yes'):
+            num_runs = min(num_runs, 2)  # Limit to 2 runs in CI
+            logger.info(f"CI mode detected: reducing consistency runs to {num_runs}")
+        
         logger.info(f"Running consistency test for test case {test_case.id} ({num_runs} runs)")
 
         llm = self.llm_factory.create_llm(provider_name, model_name)

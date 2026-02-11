@@ -195,17 +195,14 @@ class TestLLMFactory:
 
     @patch.dict('os.environ', {
         'GROQ_API_KEY': 'groq-key', 'OPENAI_API_KEY': 'openai-key',
-        'ANTHROPIC_API_KEY': 'claude-key', 'GOOGLE_API_KEY': 'gemini-key'
+        'ANTHROPIC_API_KEY': 'claude-key', 'GOOGLE_API_KEY': 'gemini-key',
+        'HUGGINGFACE_API_KEY': 'hf-key', 'OPENROUTER_API_KEY': 'or-key'
     })
     def test_create_all_providers(self, comprehensive_config):
         """Test creating all provider types."""
         for provider_name in LLMFactory.PROVIDERS.keys():
-            try:
-                provider = LLMFactory.create_provider(provider_name, config=comprehensive_config)
-                assert provider.provider_name == provider_name
-            except Exception as e:
-                if provider_name not in ["ollama", "localai"]:
-                    raise e
+            provider = LLMFactory.create_provider_classmethod(provider_name, config=comprehensive_config)
+            assert provider.provider_name == provider_name
 
     @patch.dict('os.environ', {'GROQ_API_KEY': 'groq-key', 'OPENAI_API_KEY': 'openai-key'})
     def test_role_based_providers(self, comprehensive_config):

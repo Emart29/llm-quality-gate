@@ -1,0 +1,106 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llmq"
+version = "0.1.0"
+description = "LLM Quality Gate - A provider-agnostic evaluation framework for LLM applications"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "LLMQ Team", email = "team@llmq.dev"},
+]
+keywords = ["llm", "ai", "evaluation", "quality", "testing"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pytest",
+    "pytest-asyncio",
+    "pydantic",
+    "pydantic-settings",
+    "httpx",
+    "sentence-transformers",
+    "numpy",
+    "scikit-learn",
+    "python-dotenv",
+    "typer[all]",
+    "rich",
+    
+    # LLM Provider SDKs
+    "groq",
+    "openai",
+    "anthropic",
+    "google-genai",
+    "huggingface-hub",
+    "transformers",
+    
+    # Database & Storage
+    "duckdb",
+    "sqlalchemy",
+    
+    # Utilities
+    "pyyaml",
+    "aiofiles",
+    "python-multipart",
+    "jinja2",
+    
+    # Dashboard & Visualization
+    "plotly",
+    "pandas",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest-cov",
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+]
+
+[project.urls]
+Homepage = "https://github.com/Emart29/llm-quality-gate"
+Documentation = "https://github.com/Emart29/llm-quality-gate/docs"
+Repository = "https://github.com/Emart29/llm-quality-gate"
+Issues = "https://github.com/Emart29/llm-quality-gate/issues"
+
+[project.scripts]
+llmq = "cli.main:app"
+
+[tool.setuptools.packages.find]
+include = ["cli*", "llm*", "evals*", "storage*", "dashboard*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml", "*.json", "*.html", "*.css", "*.js"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

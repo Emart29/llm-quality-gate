@@ -3,6 +3,7 @@
 from typing import Dict, Any, List, Optional
 import yaml
 import os
+from dotenv import load_dotenv
 from .base import LLMProvider, LLMRequest, LLMResponse
 from .groq import GroqProvider
 from .openai import OpenAIProvider
@@ -94,11 +95,16 @@ class LLMFactory:
 
     def __init__(self, config_path: str = "config.yaml"):
         """Initialize the factory with configuration."""
+        # Load environment variables from .env file
+        load_dotenv()
         self.config = self.load_config(config_path)
 
     @classmethod
     def load_config(cls, config_path: str = "config.yaml") -> Dict[str, Any]:
         """Load configuration from YAML file."""
+        # Load environment variables from .env file
+        load_dotenv()
+        
         try:
             with open(config_path, 'r') as f:
                 return yaml.safe_load(f)
@@ -122,12 +128,13 @@ class LLMFactory:
 
     def create_llm(self, provider_name: str, model_name: Optional[str] = None, config: Optional[Dict] = None) -> "BaseLLM":
         """Create an LLM instance compatible with the metrics system."""
-        provider = self.create_provider(provider_name, model_name=model_name, config=config)
+        # Use instance config if no config provided
+        resolved_config = config if config is not None else self.config
+        provider = self.create_provider(provider_name, model_name=model_name, config=resolved_config)
         return BaseLLM(provider)
 
-    @classmethod
     def create_provider(
-        cls,
+        self,
         provider_name: str,
         model_name: Optional[str] = None,
         config: Optional[Dict[str, Any]] = None,
@@ -137,16 +144,17 @@ class LLMFactory:
 
         Can be called as instance method (uses self.config) or classmethod (pass config).
         """
-        # Support both: instance call (self.create_provider) and class call
-        if config is None and hasattr(cls, 'config') and not isinstance(cls, type):
-            resolved_config = cls.config  # type: ignore
-        elif config is not None:
-            resolved_config = config
+        # For instance calls, use self.config if no config provided
+        if config is None:
+            if hasattr(self, 'config'):
+                resolved_config = self.config
+            else:
+                raise ValueError("Config must be provided when calling as classmethod")
         else:
-            raise ValueError("Config must be provided when calling as classmethod")
+            resolved_config = config
 
-        if provider_name not in cls.PROVIDERS:
-            available = ", ".join(cls.PROVIDERS.keys())
+        if provider_name not in self.PROVIDERS:
+            available = ", ".join(self.PROVIDERS.keys())
             raise ValueError(f"Unknown provider: {provider_name}. Available: {available}")
 
         provider_config = resolved_config.get("providers", {}).get(provider_name, {})
@@ -160,24 +168,70 @@ class LLMFactory:
         global_config = resolved_config.get("llm", {})
         merged_config = {**global_config, **provider_config}
 
+        provider_class = self.PROVIDERS[provider_name]
+        provider = provider_class(merged_config)
+        
+        # Check if provider is enabled (has valid API key)
+        if not provider.enabled:
+            api_key_env = merged_config.get("api_key_env", f"{provider_name.upper()}_API_KEY")
+            raise ValueError(
+                f"Provider '{provider_name}' is not configured. "
+                f"Please set {api_key_env} in your environment or .env file."
+            )
+        
+        return provider
+
+    @classmethod
+    def create_provider_classmethod(
+        cls,
+        provider_name: str,
+        model_name: Optional[str] = None,
+        config: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> LLMProvider:
+        """Create an LLM provider instance (classmethod version)."""
+        if config is None:
+            raise ValueError("Config must be provided when calling as classmethod")
+
+        if provider_name not in cls.PROVIDERS:
+            available = ", ".join(cls.PROVIDERS.keys())
+            raise ValueError(f"Unknown provider: {provider_name}. Available: {available}")
+
+        provider_config = config.get("providers", {}).get(provider_name, {})
+        if not provider_config:
+            raise ValueError(f"No configuration found for provider: {provider_name}")
+
+        provider_config = provider_config.copy()
+        if model_name:
+            provider_config["model"] = model_name
+
+        global_config = config.get("llm", {})
+        merged_config = {**global_config, **provider_config}
+
         provider_class = cls.PROVIDERS[provider_name]
-        return provider_class(merged_config)
+        provider = provider_class(merged_config)
+        
+        # Check if provider is enabled (has valid API key)
+        if not provider.enabled:
+            api_key_env = merged_config.get("api_key_env", f"{provider_name.upper()}_API_KEY")
+            raise ValueError(
+                f"Provider '{provider_name}' is not configured. "
+                f"Please set {api_key_env} in your environment or .env file."
+            )
+        
+        return provider
 
     @classmethod
     def create_default_provider(cls, config: Optional[Dict[str, Any]] = None) -> LLMProvider:
         """Create the default LLM provider."""
-        if config is None and hasattr(cls, 'config') and not isinstance(cls, type):
-            config = cls.config  # type: ignore
         if config is None:
             raise ValueError("Config must be provided when calling as classmethod")
         default_provider = config.get("llm", {}).get("default_provider", "groq")
-        return cls.create_provider(default_provider, config=config)
+        return cls.create_provider_classmethod(default_provider, config=config)
 
     @classmethod
     def create_provider_for_role(cls, role: str, config: Optional[Dict[str, Any]] = None) -> LLMProvider:
         """Create an LLM provider for a specific role (generator or judge)."""
-        if config is None and hasattr(cls, 'config') and not isinstance(cls, type):
-            config = cls.config  # type: ignore
         if config is None:
             raise ValueError("Config must be provided when calling as classmethod")
 
@@ -201,23 +255,48 @@ class LLMFactory:
         merged_config = {**global_config, **provider_config}
 
         provider_class = cls.PROVIDERS[provider_name]
-        return provider_class(merged_config)
+        provider = provider_class(merged_config)
+        
+        # Check if provider is enabled (has valid API key)
+        if not provider.enabled:
+            api_key_env = merged_config.get("api_key_env", f"{provider_name.upper()}_API_KEY")
+            raise ValueError(
+                f"Provider '{provider_name}' is not configured. "
+                f"Please set {api_key_env} in your environment or .env file."
+            )
+        
+        return provider
 
     @classmethod
     def list_available_providers(cls, config: Optional[Dict[str, Any]] = None) -> Dict[str, bool]:
         """List available providers and their configuration status."""
-        if config is None and hasattr(cls, 'config') and not isinstance(cls, type):
-            config = cls.config  # type: ignore
         if config is None:
             raise ValueError("Config must be provided when calling as classmethod")
 
         providers = {}
         for provider_name in cls.PROVIDERS.keys():
             try:
-                provider = cls.create_provider(provider_name, config=config)
-                providers[provider_name] = provider.validate_config()
+                provider = cls.create_provider_classmethod(provider_name, config=config)
+                providers[provider_name] = provider.enabled
             except Exception as e:
-                logger.warning(f"Failed to create provider {provider_name}: {e}")
+                logger.debug(f"Provider {provider_name} not available: {e}")
                 providers[provider_name] = False
 
         return providers
+    
+    @classmethod
+    def get_enabled_providers(cls, config: Optional[Dict[str, Any]] = None) -> List[str]:
+        """Get list of enabled provider names."""
+        if config is None:
+            raise ValueError("Config must be provided when calling as classmethod")
+            
+        enabled = []
+        for provider_name in cls.PROVIDERS.keys():
+            try:
+                provider = cls.create_provider_classmethod(provider_name, config=config)
+                if provider.enabled:
+                    enabled.append(provider_name)
+            except Exception as e:
+                logger.debug(f"Provider {provider_name} not available: {e}")
+                
+        return enabled

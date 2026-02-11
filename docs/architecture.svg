@@ -1,63 +1,354 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="220" viewBox="0 0 1400 220" role="img" aria-labelledby="title desc">
-  <title id="title">LLMQ Architecture Flow</title>
-  <desc id="desc">Prompt flows through evaluation runner, provider adapters, metrics engine, quality gates, storage, and dashboard.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-labelledby="arch-title arch-desc">
+  <title id="arch-title">LLMQ — Architecture Diagram</title>
+  <desc id="arch-desc">System architecture of the LLM Quality Gate framework showing CLI, Provider Factory, Metrics Engine, Storage Layer, Dashboard, CI Pipeline, and Quality Gate Logic.</desc>
+
   <defs>
-    <style>
-      .bg { fill: #f8fafc; }
-      .card { fill: #ffffff; stroke: #1e3a8a; stroke-width: 2; rx: 12; ry: 12; }
-      .text { font-family: Inter, Segoe UI, Roboto, Arial, sans-serif; font-size: 18px; fill: #0f172a; font-weight: 600; }
-      .arrow { stroke: #334155; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
-    </style>
-    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#334155" />
+    <!-- Gradients -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="cliGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="provGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0891b2"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="metricsGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="gateGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+    <linearGradient id="storageGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="dashGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e11d48"/>
+      <stop offset="100%" stop-color="#fb7185"/>
+    </linearGradient>
+    <linearGradient id="ciGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Arrowhead markers -->
+    <marker id="arrow-grey" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
     </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/>
+    </marker>
+    <marker id="arrow-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/>
+    </marker>
+    <marker id="arrow-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/>
+    </marker>
+    <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrow-violet" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/>
+    </marker>
+
+    <style>
+      .title    { font: bold 28px Inter, 'Segoe UI', system-ui, sans-serif; fill: #f1f5f9; }
+      .subtitle { font: 14px Inter, 'Segoe UI', system-ui, sans-serif; fill: #94a3b8; }
+      .box-label{ font: bold 15px Inter, 'Segoe UI', system-ui, sans-serif; fill: #fff; }
+      .box-sub  { font: 11px Inter, 'Segoe UI', system-ui, sans-serif; fill: rgba(255,255,255,0.75); }
+      .edge-lbl { font: 11px Inter, 'Segoe UI', system-ui, sans-serif; fill: #94a3b8; }
+      .legend   { font: 12px Inter, 'Segoe UI', system-ui, sans-serif; fill: #cbd5e1; }
+      .layer-lbl{ font: bold 12px Inter, 'Segoe UI', system-ui, sans-serif; fill: #475569; letter-spacing: 1.5px; text-transform: uppercase; }
+    </style>
   </defs>
 
-  <rect class="bg" x="0" y="0" width="1400" height="220" />
+  <!-- ── Background ────────────────────────────────────────── -->
+  <rect width="1200" height="820" fill="url(#bgGrad)" rx="16"/>
 
-  <g transform="translate(20,60)">
-    <rect class="card" width="160" height="100" />
-    <text class="text" x="80" y="58" text-anchor="middle">Prompt</text>
+  <!-- Title -->
+  <text class="title" x="60" y="50">LLMQ — Architecture</text>
+  <text class="subtitle" x="60" y="72">LLM Quality Gate Framework · Provider-agnostic evaluation &amp; CI pipeline</text>
+
+  <!-- ════════════════════════════════════════════════════════════
+       LAYER 1 — Entry Points  (y ≈ 100)
+       ════════════════════════════════════════════════════════ -->
+  <text class="layer-lbl" x="60" y="110">Entry Points</text>
+  <line x1="170" y1="106" x2="1140" y2="106" stroke="#334155" stroke-width="1" stroke-dasharray="4"/>
+
+  <!-- CLI -->
+  <g transform="translate(60,125)" filter="url(#shadow)">
+    <rect width="220" height="100" rx="12" fill="url(#cliGrad)"/>
+    <text class="box-label" x="110" y="35" text-anchor="middle">⌘  CLI  (Typer)</text>
+    <text class="box-sub"  x="110" y="55" text-anchor="middle">llmq init · eval · dashboard</text>
+    <text class="box-sub"  x="110" y="70" text-anchor="middle">doctor · compare · runs</text>
+    <text class="box-sub"  x="110" y="85" text-anchor="middle">cli/main.py</text>
   </g>
 
-  <g transform="translate(220,60)">
-    <rect class="card" width="180" height="100" />
-    <text class="text" x="90" y="48" text-anchor="middle">Evaluation</text>
-    <text class="text" x="90" y="72" text-anchor="middle">Runner</text>
+  <!-- CI Pipeline -->
+  <g transform="translate(340,125)" filter="url(#shadow)">
+    <rect width="240" height="100" rx="12" fill="url(#ciGrad)"/>
+    <text class="box-label" x="120" y="35" text-anchor="middle">⚙  CI Pipeline</text>
+    <text class="box-sub"  x="120" y="55" text-anchor="middle">GitHub Actions · PR gating</text>
+    <text class="box-sub"  x="120" y="70" text-anchor="middle">api_quality_gate.py · runner.py</text>
+    <text class="box-sub"  x="120" y="85" text-anchor="middle">--fail-on-gate exit codes</text>
   </g>
 
-  <g transform="translate(440,60)">
-    <rect class="card" width="190" height="100" />
-    <text class="text" x="95" y="48" text-anchor="middle">Provider</text>
-    <text class="text" x="95" y="72" text-anchor="middle">Adapters</text>
+  <!-- REST API -->
+  <g transform="translate(640,125)" filter="url(#shadow)">
+    <rect width="220" height="100" rx="12" fill="url(#dashGrad)"/>
+    <text class="box-label" x="110" y="35" text-anchor="middle">🌐  REST API</text>
+    <text class="box-sub"  x="110" y="55" text-anchor="middle">FastAPI · /api/v1/*</text>
+    <text class="box-sub"  x="110" y="70" text-anchor="middle">evaluate · runs · compare</text>
+    <text class="box-sub"  x="110" y="85" text-anchor="middle">dashboard/api.py</text>
   </g>
 
-  <g transform="translate(670,60)">
-    <rect class="card" width="180" height="100" />
-    <text class="text" x="90" y="48" text-anchor="middle">Metrics</text>
-    <text class="text" x="90" y="72" text-anchor="middle">Engine</text>
+  <!-- Dashboard -->
+  <g transform="translate(920,125)" filter="url(#shadow)">
+    <rect width="220" height="100" rx="12" fill="url(#dashGrad)" opacity="0.85"/>
+    <text class="box-label" x="110" y="35" text-anchor="middle">📊  Dashboard</text>
+    <text class="box-sub"  x="110" y="55" text-anchor="middle">Charts · History · Drill-down</text>
+    <text class="box-sub"  x="110" y="70" text-anchor="middle">Provider comparison</text>
+    <text class="box-sub"  x="110" y="85" text-anchor="middle">localhost:8000</text>
   </g>
 
-  <g transform="translate(890,60)">
-    <rect class="card" width="170" height="100" />
-    <text class="text" x="85" y="48" text-anchor="middle">Quality</text>
-    <text class="text" x="85" y="72" text-anchor="middle">Gates</text>
+  <!-- ════════════════════════════════════════════════════════════
+       LAYER 2 — Core Engine  (y ≈ 290)
+       ════════════════════════════════════════════════════════ -->
+  <text class="layer-lbl" x="60" y="275">Core Engine</text>
+  <line x1="170" y1="271" x2="1140" y2="271" stroke="#334155" stroke-width="1" stroke-dasharray="4"/>
+
+  <!-- Provider Factory -->
+  <g transform="translate(60,290)" filter="url(#shadow)">
+    <rect width="260" height="130" rx="12" fill="url(#provGrad)"/>
+    <text class="box-label" x="130" y="30" text-anchor="middle">🔌  Provider Factory</text>
+    <text class="box-sub"  x="130" y="50" text-anchor="middle">LLMFactory · BaseLLM</text>
+    <text class="box-sub"  x="130" y="68" text-anchor="middle">8 providers: OpenAI · Claude</text>
+    <text class="box-sub"  x="130" y="83" text-anchor="middle">Gemini · Groq · HuggingFace</text>
+    <text class="box-sub"  x="130" y="98" text-anchor="middle">OpenRouter · Ollama · LocalAI</text>
+    <text class="box-sub"  x="130" y="116" text-anchor="middle">llm/factory.py</text>
   </g>
 
-  <g transform="translate(1100,60)">
-    <rect class="card" width="140" height="100" />
-    <text class="text" x="70" y="58" text-anchor="middle">Storage</text>
+  <!-- Evaluation Runner -->
+  <g transform="translate(380,290)" filter="url(#shadow)">
+    <rect width="240" height="130" rx="12" fill="url(#provGrad)" opacity="0.85"/>
+    <text class="box-label" x="120" y="30" text-anchor="middle">▶  Evaluation Runner</text>
+    <text class="box-sub"  x="120" y="50" text-anchor="middle">Dataset loading · Test execution</text>
+    <text class="box-sub"  x="120" y="68" text-anchor="middle">Async workers · Deterministic</text>
+    <text class="box-sub"  x="120" y="86" text-anchor="middle">ComprehensiveEvaluationRunner</text>
+    <text class="box-sub"  x="120" y="104" text-anchor="middle">evals/runner.py</text>
+    <text class="box-sub"  x="120" y="120" text-anchor="middle">evals/comprehensive_runner.py</text>
   </g>
 
-  <g transform="translate(1260,60)">
-    <rect class="card" width="120" height="100" />
-    <text class="text" x="60" y="58" text-anchor="middle">Dashboard</text>
+  <!-- Metrics Engine -->
+  <g transform="translate(680,290)" filter="url(#shadow)">
+    <rect width="240" height="130" rx="12" fill="url(#metricsGrad)"/>
+    <text class="box-label" x="120" y="30" text-anchor="middle">📐  Metrics Engine</text>
+    <text class="box-sub"  x="120" y="50" text-anchor="middle">Task Success (exact + semantic)</text>
+    <text class="box-sub"  x="120" y="68" text-anchor="middle">Relevance (embedding cosine)</text>
+    <text class="box-sub"  x="120" y="86" text-anchor="middle">Hallucination (LLM-as-Judge)</text>
+    <text class="box-sub"  x="120" y="104" text-anchor="middle">Consistency (multi-run)</text>
+    <text class="box-sub"  x="120" y="120" text-anchor="middle">evals/metrics.py</text>
   </g>
 
-  <line class="arrow" x1="180" y1="110" x2="220" y2="110" />
-  <line class="arrow" x1="400" y1="110" x2="440" y2="110" />
-  <line class="arrow" x1="630" y1="110" x2="670" y2="110" />
-  <line class="arrow" x1="850" y1="110" x2="890" y2="110" />
-  <line class="arrow" x1="1060" y1="110" x2="1100" y2="110" />
-  <line class="arrow" x1="1240" y1="110" x2="1260" y2="110" />
+  <!-- Quality Gate Logic -->
+  <g transform="translate(960,290)" filter="url(#shadow)">
+    <rect width="180" height="130" rx="12" fill="url(#gateGrad)"/>
+    <text class="box-label" x="90" y="30" text-anchor="middle">🚦  Quality Gate</text>
+    <text class="box-sub"  x="90" y="50" text-anchor="middle">MetricResult</text>
+    <text class="box-sub"  x="90" y="68" text-anchor="middle">QualityGateResult</text>
+    <text class="box-sub"  x="90" y="86" text-anchor="middle">Thresholds config</text>
+    <text class="box-sub"  x="90" y="104" text-anchor="middle">Pass / Fail verdict</text>
+    <text class="box-sub"  x="90" y="120" text-anchor="middle">Regression detect</text>
+  </g>
+
+  <!-- ════════════════════════════════════════════════════════════
+       LAYER 3 — Persistence  (y ≈ 490)
+       ════════════════════════════════════════════════════════ -->
+  <text class="layer-lbl" x="60" y="472">Persistence</text>
+  <line x1="170" y1="468" x2="1140" y2="468" stroke="#334155" stroke-width="1" stroke-dasharray="4"/>
+
+  <!-- Storage Layer -->
+  <g transform="translate(60,485)" filter="url(#shadow)">
+    <rect width="280" height="120" rx="12" fill="url(#storageGrad)"/>
+    <text class="box-label" x="140" y="30" text-anchor="middle">🗄  Storage Layer</text>
+    <text class="box-sub"  x="140" y="50" text-anchor="middle">DuckDB · llmqg.duckdb</text>
+    <text class="box-sub"  x="140" y="68" text-anchor="middle">evaluation_runs · test_case_results</text>
+    <text class="box-sub"  x="140" y="86" text-anchor="middle">quality_gate_history · baselines</text>
+    <text class="box-sub"  x="140" y="104" text-anchor="middle">storage/database.py · repository.py</text>
+  </g>
+
+  <!-- Config -->
+  <g transform="translate(400,485)" filter="url(#shadow)">
+    <rect width="220" height="120" rx="12" fill="url(#storageGrad)" opacity="0.8"/>
+    <text class="box-label" x="110" y="30" text-anchor="middle">⚡  Configuration</text>
+    <text class="box-sub"  x="110" y="52" text-anchor="middle">config.yaml</text>
+    <text class="box-sub"  x="110" y="70" text-anchor="middle">Providers · Thresholds</text>
+    <text class="box-sub"  x="110" y="88" text-anchor="middle">evals/dataset.json</text>
+    <text class="box-sub"  x="110" y="106" text-anchor="middle">.env  (API keys)</text>
+  </g>
+
+  <!-- Dataset -->
+  <g transform="translate(680,485)" filter="url(#shadow)">
+    <rect width="220" height="120" rx="12" fill="url(#storageGrad)" opacity="0.65"/>
+    <text class="box-label" x="110" y="30" text-anchor="middle">📋  Test Dataset</text>
+    <text class="box-sub"  x="110" y="52" text-anchor="middle">question_answering</text>
+    <text class="box-sub"  x="110" y="70" text-anchor="middle">summarization · code_gen</text>
+    <text class="box-sub"  x="110" y="88" text-anchor="middle">expected_output · context</text>
+    <text class="box-sub"  x="110" y="106" text-anchor="middle">evals/dataset.py</text>
+  </g>
+
+  <!-- ════════════════════════════════════════════════════════════
+       CONNECTORS  (arrows between layers)
+       ════════════════════════════════════════════════════════ -->
+
+  <!-- CLI → Eval Runner -->
+  <path d="M170,225 L170,260 Q170,275 185,275 L410,275 L410,290"
+        stroke="#818cf8" stroke-width="2.5" fill="none" marker-end="url(#arrow-cyan)"/>
+  <text class="edge-lbl" x="280" y="268">triggers</text>
+
+  <!-- CI → Eval Runner -->
+  <path d="M460,225 L460,290"
+        stroke="#fb923c" stroke-width="2.5" fill="none" marker-end="url(#arrow-orange)"/>
+  <text class="edge-lbl" x="468" y="262">invokes</text>
+
+  <!-- API → Eval Runner  -->
+  <path d="M750,225 L750,260 Q750,275 735,275 L540,275 L540,290"
+        stroke="#fb7185" stroke-width="2.5" fill="none" marker-end="url(#arrow-rose)"/>
+  <text class="edge-lbl" x="640" y="268">POST /evaluate</text>
+
+  <!-- Provider Factory → Eval Runner (bidirectional concept) -->
+  <path d="M320,355 L380,355"
+        stroke="#22d3ee" stroke-width="2.5" fill="none" marker-end="url(#arrow-cyan)"/>
+  <text class="edge-lbl" x="330" y="348">creates</text>
+
+  <!-- Eval Runner → Metrics Engine -->
+  <path d="M620,355 L680,355"
+        stroke="#34d399" stroke-width="2.5" fill="none" marker-end="url(#arrow-green)"/>
+  <text class="edge-lbl" x="632" y="348">scores</text>
+
+  <!-- Metrics → Quality Gate -->
+  <path d="M920,355 L960,355"
+        stroke="#fbbf24" stroke-width="2.5" fill="none" marker-end="url(#arrow-amber)"/>
+  <text class="edge-lbl" x="922" y="348">evaluate</text>
+
+  <!-- Quality Gate ↓ Storage -->
+  <path d="M1050,420 L1050,445 Q1050,460 1035,460 L300,460 L300,485"
+        stroke="#a78bfa" stroke-width="2.5" fill="none" marker-end="url(#arrow-violet)"/>
+  <text class="edge-lbl" x="650" y="453">persist results</text>
+
+  <!-- Storage ↑ Dashboard -->
+  <path d="M200,485 L200,460 Q200,445 215,445 L980,445 Q995,445 995,430 L995,260
+           Q995,245 1010,245 L1030,225"
+        stroke="#fb7185" stroke-width="2" fill="none" stroke-dasharray="6" marker-end="url(#arrow-rose)"/>
+  <text class="edge-lbl" x="1000" y="338">reads</text>
+
+  <!-- Config → Engine -->
+  <path d="M510,485 L510,460 Q510,445 500,445 L460,445 L460,420"
+        stroke="#a78bfa" stroke-width="2" fill="none" stroke-dasharray="6" marker-end="url(#arrow-violet)"/>
+  <text class="edge-lbl" x="465" y="440">config</text>
+
+  <!-- Dataset → Runner -->
+  <path d="M790,485 L790,460 Q790,445 780,445 L520,445 L520,420"
+        stroke="#a78bfa" stroke-width="2" fill="none" stroke-dasharray="6" marker-end="url(#arrow-violet)"/>
+  <text class="edge-lbl" x="660" y="440">test cases</text>
+
+  <!-- ════════════════════════════════════════════════════════════
+       LEGEND
+       ════════════════════════════════════════════════════════ -->
+  <g transform="translate(60, 640)">
+    <text class="layer-lbl" x="0" y="0">Legend</text>
+    <line x1="56" y1="-4" x2="1080" y2="-4" stroke="#334155" stroke-width="1" stroke-dasharray="4"/>
+
+    <!-- Row 1 -->
+    <rect x="0"   y="14" width="18" height="18" rx="4" fill="url(#cliGrad)"/>
+    <text class="legend" x="24" y="28">CLI</text>
+
+    <rect x="120" y="14" width="18" height="18" rx="4" fill="url(#ciGrad)"/>
+    <text class="legend" x="144" y="28">CI Pipeline</text>
+
+    <rect x="280" y="14" width="18" height="18" rx="4" fill="url(#provGrad)"/>
+    <text class="legend" x="304" y="28">Provider / Runner</text>
+
+    <rect x="470" y="14" width="18" height="18" rx="4" fill="url(#metricsGrad)"/>
+    <text class="legend" x="494" y="28">Metrics Engine</text>
+
+    <rect x="650" y="14" width="18" height="18" rx="4" fill="url(#gateGrad)"/>
+    <text class="legend" x="674" y="28">Quality Gate</text>
+
+    <rect x="810" y="14" width="18" height="18" rx="4" fill="url(#storageGrad)"/>
+    <text class="legend" x="834" y="28">Storage / Config</text>
+
+    <rect x="980" y="14" width="18" height="18" rx="4" fill="url(#dashGrad)"/>
+    <text class="legend" x="1004" y="28">Dashboard / API</text>
+
+    <!-- Row 2 — arrow styles -->
+    <line x1="0" y1="56" x2="40" y2="56" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arrow-grey)"/>
+    <text class="legend" x="50" y="60">Data flow</text>
+
+    <line x1="170" y1="56" x2="210" y2="56" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6" marker-end="url(#arrow-grey)"/>
+    <text class="legend" x="220" y="60">Config / read path</text>
+  </g>
+
+  <!-- ════════════════════════════════════════════════════════════
+       DATA FLOW SUMMARY  (bottom)
+       ════════════════════════════════════════════════════════ -->
+  <g transform="translate(60, 740)">
+    <text class="layer-lbl" x="0" y="0">End-to-End Flow</text>
+    <line x1="140" y1="-4" x2="1080" y2="-4" stroke="#334155" stroke-width="1" stroke-dasharray="4"/>
+
+    <!-- Mini flow: boxes + arrows inline -->
+    <rect x="0"   y="15" width="100" height="36" rx="8" fill="url(#cliGrad)" opacity="0.8"/>
+    <text class="box-sub" x="50"  y="37" text-anchor="middle" style="font-size:11px;fill:#fff">CLI / CI</text>
+
+    <line x1="105" y1="33" x2="130" y2="33" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow-grey)"/>
+
+    <rect x="135" y="15" width="100" height="36" rx="8" fill="url(#provGrad)" opacity="0.8"/>
+    <text class="box-sub" x="185" y="37" text-anchor="middle" style="font-size:11px;fill:#fff">Dataset</text>
+
+    <line x1="240" y1="33" x2="265" y2="33" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow-grey)"/>
+
+    <rect x="270" y="15" width="100" height="36" rx="8" fill="url(#provGrad)" opacity="0.8"/>
+    <text class="box-sub" x="320" y="37" text-anchor="middle" style="font-size:11px;fill:#fff">Provider</text>
+
+    <line x1="375" y1="33" x2="400" y2="33" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow-grey)"/>
+
+    <rect x="405" y="15" width="100" height="36" rx="8" fill="url(#metricsGrad)" opacity="0.8"/>
+    <text class="box-sub" x="455" y="37" text-anchor="middle" style="font-size:11px;fill:#fff">Metrics</text>
+
+    <line x1="510" y1="33" x2="535" y2="33" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow-grey)"/>
+
+    <rect x="540" y="15" width="110" height="36" rx="8" fill="url(#gateGrad)" opacity="0.8"/>
+    <text class="box-sub" x="595" y="37" text-anchor="middle" style="font-size:11px;fill:#fff">Quality Gate</text>
+
+    <line x1="655" y1="33" x2="680" y2="33" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow-grey)"/>
+
+    <rect x="685" y="15" width="100" height="36" rx="8" fill="url(#storageGrad)" opacity="0.8"/>
+    <text class="box-sub" x="735" y="37" text-anchor="middle" style="font-size:11px;fill:#fff">Storage</text>
+
+    <line x1="790" y1="33" x2="815" y2="33" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow-grey)"/>
+
+    <rect x="820" y="15" width="110" height="36" rx="8" fill="url(#dashGrad)" opacity="0.8"/>
+    <text class="box-sub" x="875" y="37" text-anchor="middle" style="font-size:11px;fill:#fff">Dashboard</text>
+  </g>
+
+  <!-- Watermark -->
+  <text x="1140" y="810" text-anchor="end" style="font:10px Inter,sans-serif;fill:#334155">LLMQ v1.0 · Emart29/llm-quality-gate</text>
 </svg>

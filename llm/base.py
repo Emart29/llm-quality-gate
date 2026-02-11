@@ -9,6 +9,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class ProviderNotConfiguredError(Exception):
+    """Raised when a provider is not properly configured with required API keys."""
+    pass
+
+
 class LLMRequest(BaseModel):
     """Standardized request format for all LLM providers."""
     prompt: str
@@ -36,15 +41,43 @@ class LLMProvider(ABC):
         self.config = config
         self.provider_name = self.__class__.__name__.replace("Provider", "").lower()
         self.model = config.get("model", "unknown")
+        
+        # Load API key and determine if provider is enabled
         self.api_key = self._get_api_key()
+        self.enabled = bool(self.api_key)
+        
+        # Client will be initialized lazily by subclasses
+        self._client = None
+        
+        # Only initialize HTTP client if enabled
+        if self.enabled:
+            # This will be called after subclass __init__ completes
+            self._should_initialize_client = True
+        else:
+            logger.debug(f"Provider '{self.provider_name}' disabled: missing API key")
+            self._should_initialize_client = False
         
     def _get_api_key(self) -> Optional[str]:
         """Get API key from environment variable."""
         import os
         api_key_env = self.config.get("api_key_env")
         if api_key_env:
-            return os.getenv(api_key_env)
+            api_key = os.getenv(api_key_env)
+            return api_key.strip() if api_key else None
         return None
+    
+    def _initialize_client(self):
+        """Initialize HTTP client. Override in subclasses."""
+        pass
+    
+    def ensure_enabled(self):
+        """Ensure provider is enabled, raise error if not."""
+        if not self.enabled:
+            api_key_env = self.config.get("api_key_env", f"{self.provider_name.upper()}_API_KEY")
+            raise ProviderNotConfiguredError(
+                f"Provider '{self.provider_name}' is not configured. "
+                f"Please set {api_key_env} in your environment or .env file."
+            )
     
     @abstractmethod
     async def generate(self, request: LLMRequest) -> LLMResponse:
@@ -83,13 +116,13 @@ class LLMProvider(ABC):
     
     def validate_config(self) -> bool:
         """Validate provider configuration."""
-        if not self.api_key:
-            logger.error(f"API key not found for {self.provider_name}")
-            return False
-        return True
+        return self.enabled
     
     async def health_check(self) -> bool:
         """Check if the provider is healthy and accessible."""
+        if not self.enabled:
+            return False
+            
         try:
             test_request = LLMRequest(
                 prompt="Hello",

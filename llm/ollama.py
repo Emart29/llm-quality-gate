@@ -2,7 +2,7 @@
 
 import httpx
 from typing import Dict, Any
-from .base import LLMProvider, LLMRequest, LLMResponse
+from .base import LLMProvider, LLMRequest, LLMResponse, ProviderNotConfiguredError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,16 +15,28 @@ class OllamaProvider(LLMProvider):
         super().__init__(config)
         self.base_url = config.get("base_url", "http://localhost:11434")
         self.model_name = config.get("model", "llama2")
+        self.timeout = config.get("timeout", 120)  # Local models can be slower
+        self._client = None
         
-        self.client = httpx.AsyncClient(
-            base_url=self.base_url,
-            headers={"Content-Type": "application/json"},
-            timeout=config.get("timeout", 120)  # Local models can be slower
-        )
-    
+        # Initialize client (always enabled for Ollama)
+        self._initialize_client()
+        
     def _get_api_key(self) -> str:
         """Ollama doesn't require API key for local usage."""
-        return "local"
+        return "local"  # Always return a value so provider is enabled
+    
+    def _initialize_client(self):
+        """Initialize HTTP client for Ollama."""
+        self._client = httpx.AsyncClient(
+            base_url=self.base_url,
+            headers={"Content-Type": "application/json"},
+            timeout=self.timeout
+        )
+        
+    @property
+    def client(self):
+        """Get HTTP client."""
+        return self._client
     
     async def generate(self, request: LLMRequest) -> LLMResponse:
         """Generate response using Ollama API."""
@@ -122,4 +134,5 @@ class OllamaProvider(LLMProvider):
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.client.aclose()
+        if self._client:
+            await self._client.aclose()

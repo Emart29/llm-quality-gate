@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLMQ Demo — 60-Second Walkthrough</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 24px;
+    }
+
+    h1 {
+      font-size: 28px;
+      background: linear-gradient(135deg, #818cf8, #22d3ee);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    /* Scene navigation */
+    .scenes-nav {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .scene-btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: 1.5px solid #334155;
+      background: #1e293b;
+      color: #94a3b8;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .scene-btn:hover {
+      border-color: #818cf8;
+      color: #e2e8f0;
+    }
+
+    .scene-btn.active {
+      background: linear-gradient(135deg, #6366f1, #818cf8);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    /* Terminal */
+    .terminal {
+      background: #1a1b26;
+      border: 1px solid #2d2f3d;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 880px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .45);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #24283b;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot-r {
+      background: #f7768e;
+    }
+
+    .dot-y {
+      background: #e0af68;
+    }
+
+    .dot-g {
+      background: #9ece6a;
+    }
+
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      font-size: 12px;
+      color: #565f89;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .terminal-body {
+      padding: 20px 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      min-height: 380px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .prompt {
+      color: #7aa2f7;
+    }
+
+    .cmd {
+      color: #c0caf5;
+    }
+
+    .comment {
+      color: #565f89;
+    }
+
+    .success {
+      color: #9ece6a;
+    }
+
+    .fail {
+      color: #f7768e;
+    }
+
+    .warn {
+      color: #e0af68;
+    }
+
+    .info {
+      color: #7dcfff;
+    }
+
+    .dim {
+      color: #565f89;
+    }
+
+    .metric {
+      color: #bb9af7;
+    }
+
+    .score {
+      color: #2ac3de;
+    }
+
+    .header {
+      color: #ff9e64;
+    }
+
+    /* Dashboard mockup */
+    .dashboard-frame {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 880px;
+      width: 100%;
+      border: 1px solid #334155;
+      display: none;
+    }
+
+    .dashboard-frame.active {
+      display: block;
+    }
+
+    .dash-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .dash-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .dash-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-pass {
+      background: rgba(34, 197, 94, .15);
+      color: #22c55e;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .metric-card {
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid #334155;
+    }
+
+    .metric-card .label {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .metric-card .value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .v-green {
+      color: #22c55e;
+    }
+
+    .v-blue {
+      color: #3b82f6;
+    }
+
+    .v-amber {
+      color: #f59e0b;
+    }
+
+    .v-rose {
+      color: #f43f5e;
+    }
+
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      height: 100px;
+      padding: 10px 0;
+      margin-bottom: 20px;
+    }
+
+    .bar {
+      flex: 1;
+      border-radius: 6px 6px 0 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      font-size: 10px;
+      color: #94a3b8;
+      padding-bottom: 4px;
+      position: relative;
+    }
+
+    .bar-inner {
+      width: 100%;
+      border-radius: 6px 6px 0 0;
+      position: absolute;
+      bottom: 0;
+    }
+
+    .bar span {
+      position: relative;
+      z-index: 1;
+      margin-top: auto;
+      padding-top: 4px;
+    }
+
+    .runs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .runs-table th {
+      text-align: left;
+      padding: 8px 10px;
+      color: #94a3b8;
+      border-bottom: 1px solid #334155;
+      font-weight: 600;
+    }
+
+    .runs-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #1e293b;
+      color: #cbd5e1;
+    }
+
+    .gate-pass {
+      color: #22c55e;
+      font-weight: 600;
+    }
+
+    .gate-fail {
+      color: #f43f5e;
+      font-weight: 600;
+    }
+
+    .autoplay-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .play-btn {
+      padding: 10px 24px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #6366f1, #818cf8);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .15s;
+    }
+
+    .play-btn:hover {
+      transform: scale(1.04);
+    }
+
+    .play-btn:disabled {
+      opacity: .5;
+      cursor: default;
+      transform: none;
+    }
+
+    .timer {
+      font-size: 13px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>⚡ LLMQ — 60-Second Demo</h1>
+  <p class="subtitle">LLM Quality Gate Framework · Provider-agnostic evaluation &amp; CI pipeline</p>
+
+  <div class="autoplay-bar">
+    <button class="play-btn" id="playBtn" onclick="autoplay()">▶ Autoplay Demo</button>
+    <span class="timer" id="timer">0:00 / 1:00</span>
+  </div>
+
+  <div class="scenes-nav" id="scenesNav">
+    <button class="scene-btn active" onclick="showScene(0)">1 · llmq init</button>
+    <button class="scene-btn" onclick="showScene(1)">2 · llmq eval</button>
+    <button class="scene-btn" onclick="showScene(2)">3 · CI fail</button>
+    <button class="scene-btn" onclick="showScene(3)">4 · Dashboard</button>
+  </div>
+
+  <div class="terminal" id="terminal">
+    <div class="terminal-bar">
+      <span class="dot dot-r"></span>
+      <span class="dot dot-y"></span>
+      <span class="dot dot-g"></span>
+      <span class="terminal-title" id="termTitle">llmq — demo</span>
+    </div>
+    <div class="terminal-body" id="termBody"></div>
+  </div>
+
+  <div class="dashboard-frame" id="dashboardFrame">
+    <!-- ── Navbar ── -->
+    <div
+      style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:#1e293b;border-radius:10px 10px 0 0;border-bottom:1px solid #334155;margin:-24px -24px 20px -24px">
+      <div
+        style="width:32px;height:32px;border-radius:8px;background:#6366f1;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px">
+        Q</div>
+      <span style="font-size:16px;font-weight:600;color:#e2e8f0">LLMQ Dashboard</span>
+      <span
+        style="margin-left:auto;font-size:11px;padding:3px 10px;border-radius:6px;background:#0f4429;color:#34d399;border:1px solid #166534">Run
+        a3f8c1d passed quality gate</span>
+    </div>
+
+    <!-- ── Provider & Model Management + Live Evaluations ── -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px">
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#e2e8f0">Provider & Model Management</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div>
+            <div style="font-size:10px;color:#94a3b8;margin-bottom:3px">Generator Provider</div>
+            <div
+              style="background:#334155;border:1px solid #475569;border-radius:6px;padding:5px 8px;font-size:11px;color:#cbd5e1">
+              groq</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:#94a3b8;margin-bottom:3px">Generator Model</div>
+            <div
+              style="background:#334155;border:1px solid #475569;border-radius:6px;padding:5px 8px;font-size:11px;color:#cbd5e1">
+              llama-3.1-8b-instant</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:#94a3b8;margin-bottom:3px">Judge Provider</div>
+            <div
+              style="background:#334155;border:1px solid #475569;border-radius:6px;padding:5px 8px;font-size:11px;color:#cbd5e1">
+              groq</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:#94a3b8;margin-bottom:3px">Judge Model</div>
+            <div
+              style="background:#334155;border:1px solid #475569;border-radius:6px;padding:5px 8px;font-size:11px;color:#cbd5e1">
+              llama-3.1-70b-versatile</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+          <div>
+            <div style="font-size:9px;color:#94a3b8">Task Success</div>
+            <div
+              style="background:#334155;border:1px solid #475569;border-radius:4px;padding:3px 6px;font-size:11px;color:#cbd5e1">
+              0.80</div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:#94a3b8">Relevance</div>
+            <div
+              style="background:#334155;border:1px solid #475569;border-radius:4px;padding:3px 6px;font-size:11px;color:#cbd5e1">
+              0.70</div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:#94a3b8">Hallucination</div>
+            <div
+              style="background:#334155;border:1px solid #475569;border-radius:4px;padding:3px 6px;font-size:11px;color:#cbd5e1">
+              0.10</div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:#94a3b8">Consistency</div>
+            <div
+              style="background:#334155;border:1px solid #475569;border-radius:4px;padding:3px 6px;font-size:11px;color:#cbd5e1">
+              0.80</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div style="background:#6366f1;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600">
+            Save Settings</div>
+          <div style="background:#059669;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600">
+            Start Evaluation</div>
+        </div>
+      </div>
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#e2e8f0">Live Evaluations</div>
+        <div style="background:#334155;border-radius:8px;padding:10px;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:500;color:#e2e8f0">groq/llama-3.1-8b</div>
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:6px">a3f8c1d2 • 12/12</div>
+          <div style="height:6px;background:#1e293b;border-radius:3px;overflow:hidden">
+            <div style="width:100%;height:100%;background:#6366f1;border-radius:3px"></div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:#94a3b8">No other active runs.</div>
+      </div>
+    </div>
+
+    <!-- ── KPI Cards ── -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="label">Task Success</div>
+        <div class="value v-green">87.2%</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Relevance</div>
+        <div class="value v-blue">91.5%</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Hallucination</div>
+        <div class="value v-rose">4.2%</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Gate Pass Rate</div>
+        <div class="value" style="color:#818cf8">75.0%</div>
+      </div>
+    </div>
+
+    <!-- ── Charts Row ── -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+      <!-- Metrics Over Time (mock line chart) -->
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:#e2e8f0">Metrics Over Time</div>
+        <svg viewBox="0 0 320 120" width="100%" style="overflow:visible">
+          <!-- Grid lines -->
+          <line x1="0" y1="30" x2="320" y2="30" stroke="#334155" stroke-width=".5" />
+          <line x1="0" y1="60" x2="320" y2="60" stroke="#334155" stroke-width=".5" />
+          <line x1="0" y1="90" x2="320" y2="90" stroke="#334155" stroke-width=".5" />
+          <text x="-4" y="33" fill="#94a3b8" font-size="8" text-anchor="end">75</text>
+          <text x="-4" y="63" fill="#94a3b8" font-size="8" text-anchor="end">50</text>
+          <text x="-4" y="93" fill="#94a3b8" font-size="8" text-anchor="end">25</text>
+          <!-- Overall line (indigo) -->
+          <polyline points="0,80 45,72 90,65 135,70 180,55 225,42 270,45 315,30" fill="none" stroke="#818cf8"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <!-- Task line (emerald) -->
+          <polyline points="0,75 45,68 90,60 135,66 180,50 225,38 270,40 315,25" fill="none" stroke="#34d399"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <!-- Legend -->
+          <rect x="220" y="105" width="12" height="3" rx="1" fill="#818cf8" />
+          <text x="235" y="108" fill="#94a3b8" font-size="7">Overall</text>
+          <rect x="270" y="105" width="12" height="3" rx="1" fill="#34d399" />
+          <text x="285" y="108" fill="#94a3b8" font-size="7">Task</text>
+          <!-- X labels -->
+          <text x="0" y="118" fill="#94a3b8" font-size="7">Run 1</text>
+          <text x="135" y="118" fill="#94a3b8" font-size="7">Run 4</text>
+          <text x="270" y="118" fill="#94a3b8" font-size="7">Run 7</text>
+        </svg>
+      </div>
+      <!-- Side-by-Side Provider Comparison (mock bar chart) -->
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:#e2e8f0">Side-by-Side Provider Comparison
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:16px;height:90px;padding-top:5px">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+            <div style="font-size:9px;color:#94a3b8;margin-bottom:4px">89.0%</div>
+            <div
+              style="width:100%;height:80px;background:linear-gradient(to top,#3b82f6,#60a5fa);border-radius:5px 5px 0 0">
+            </div>
+            <div style="font-size:8px;color:#94a3b8;margin-top:4px">groq/llama-3.1-8b</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+            <div style="font-size:9px;color:#94a3b8;margin-bottom:4px">85.6%</div>
+            <div
+              style="width:100%;height:68px;background:linear-gradient(to top,#3b82f6,#60a5fa);border-radius:5px 5px 0 0">
+            </div>
+            <div style="font-size:8px;color:#94a3b8;margin-top:4px">openai/gpt-3.5</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+            <div style="font-size:9px;color:#94a3b8;margin-bottom:4px">73.4%</div>
+            <div
+              style="width:100%;height:52px;background:linear-gradient(to top,#3b82f6,#60a5fa);border-radius:5px 5px 0 0">
+            </div>
+            <div style="font-size:8px;color:#94a3b8;margin-top:4px">claude/haiku</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Historical Run Search ── -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#e2e8f0">Historical Run Search</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <div
+          style="background:#334155;border:1px solid #475569;border-radius:6px;padding:5px 10px;font-size:10px;color:#94a3b8">
+          All Providers ▾</div>
+        <div
+          style="background:#334155;border:1px solid #475569;border-radius:6px;padding:5px 10px;font-size:10px;color:#94a3b8">
+          All Models ▾</div>
+        <div
+          style="background:#334155;border:1px solid #475569;border-radius:6px;padding:5px 10px;font-size:10px;color:#94a3b8">
+          All Dataset Versions ▾</div>
+        <div
+          style="background:#334155;border:1px solid #475569;border-radius:6px;padding:5px 10px;font-size:10px;color:#94a3b8">
+          Pass / Fail ▾</div>
+        <div
+          style="background:#334155;border:1px solid #475569;border-radius:6px;padding:5px 10px;font-size:10px;color:#94a3b8">
+          All Commits ▾</div>
+        <div style="background:#6366f1;color:#fff;padding:5px 10px;border-radius:6px;font-size:10px;font-weight:600">
+          Apply Filters</div>
+      </div>
+      <table class="runs-table">
+        <tr>
+          <th>Provider/Model</th>
+          <th>Dataset</th>
+          <th>Commit</th>
+          <th>Overall</th>
+          <th>Gate</th>
+          <th>Regression</th>
+          <th>Date</th>
+        </tr>
+        <tr>
+          <td>groq/llama-3.1-8b</td>
+          <td style="color:#94a3b8">v1.0</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8">a3f8c1d2</td>
+          <td>89.0%</td>
+          <td><span
+              style="background:#0f4429;color:#34d399;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600">PASS</span>
+          </td>
+          <td style="color:#34d399">+2.1%</td>
+          <td style="color:#94a3b8;font-size:10px">Feb 11, 2026 21:45</td>
+        </tr>
+        <tr>
+          <td>openai/gpt-3.5-turbo</td>
+          <td style="color:#94a3b8">v1.0</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8">b7e2a9f1</td>
+          <td>85.6%</td>
+          <td><span
+              style="background:#0f4429;color:#34d399;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600">PASS</span>
+          </td>
+          <td>-</td>
+          <td style="color:#94a3b8;font-size:10px">Feb 11, 2026 20:30</td>
+        </tr>
+        <tr>
+          <td>claude/claude-3-haiku</td>
+          <td style="color:#94a3b8">v1.0</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8">c1d4f6e3</td>
+          <td>73.4%</td>
+          <td><span
+              style="background:#4c0519;color:#fb7185;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600">FAIL</span>
+          </td>
+          <td style="color:#f43f5e">-5.2% ⚠️</td>
+          <td style="color:#94a3b8;font-size:10px">Feb 11, 2026 19:15</td>
+        </tr>
+        <tr>
+          <td>groq/mixtral-8x7b</td>
+          <td style="color:#94a3b8">v1.0</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8">d5g8h2i4</td>
+          <td>89.1%</td>
+          <td><span
+              style="background:#0f4429;color:#34d399;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600">PASS</span>
+          </td>
+          <td style="color:#34d399">+0.8%</td>
+          <td style="color:#94a3b8;font-size:10px">Feb 11, 2026 18:00</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- ── Per-test Case Drill-down ── -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:600;color:#e2e8f0">Per-test Case Drill-down</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:10px;color:#94a3b8">Run:</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#cbd5e1">a3f8c1d2</span>
+          <div style="background:#6366f1;color:#fff;padding:3px 8px;border-radius:4px;font-size:9px;font-weight:600">
+            Mark as Baseline</div>
+        </div>
+      </div>
+      <!-- Test case 1 (open) -->
+      <div style="background:#334155;border-radius:8px;padding:10px;margin-bottom:6px">
+        <div style="font-size:11px;display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <span style="color:#cbd5e1">▼</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8">capital_qa_1</span>
+          <span>✅</span>
+          <span style="font-size:10px;color:#94a3b8">question_answering</span>
+        </div>
+        <div style="font-size:10px;color:#94a3b8;line-height:1.6;padding-left:18px">
+          <div><span style="color:#64748b">Prompt:</span> What is the capital of France?</div>
+          <div><span style="color:#64748b">Output:</span> The capital of France is Paris.</div>
+          <div><span style="color:#64748b">Task/Relevance/Hallucination:</span> 95.0% / 92.3% / 2.1%</div>
+        </div>
+      </div>
+      <!-- Test case 2 (collapsed) -->
+      <div style="background:#334155;border-radius:8px;padding:10px;margin-bottom:6px">
+        <div style="font-size:11px;display:flex;align-items:center;gap:6px">
+          <span style="color:#cbd5e1">▶</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8">summarize_1</span>
+          <span>✅</span>
+          <span style="font-size:10px;color:#94a3b8">summarization</span>
+        </div>
+      </div>
+      <!-- Test case 3 (collapsed, failed) -->
+      <div style="background:#334155;border-radius:8px;padding:10px">
+        <div style="font-size:11px;display:flex;align-items:center;gap:6px">
+          <span style="color:#cbd5e1">▶</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8">code_gen_1</span>
+          <span>❌</span>
+          <span style="font-size:10px;color:#94a3b8">code_generation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const scenes = [
+      // Scene 1: llmq init
+      {
+        title: 'llmq init',
+        lines: [
+          { t: 'prompt', text: '$ ' },
+          { t: 'cmd', text: 'llmq init' },
+          { t: 'br' },
+          { t: 'br' },
+          { t: 'info', text: '🔧  Initializing LLMQ project...' },
+          { t: 'br' },
+          { t: 'success', text: '  ✓ Created config.yaml' },
+          { t: 'success', text: '  ✓ Created evals/dataset.json  (12 test cases)' },
+          { t: 'success', text: '  ✓ Created .env.example' },
+          { t: 'success', text: '  ✓ Created .github/workflows/llm-quality-gate.yml' },
+          { t: 'br' },
+          { t: 'header', text: '📋 Next steps:' },
+          { t: 'dim', text: '   1. Copy .env.example → .env and add your API keys' },
+          { t: 'dim', text: '   2. Run: llmq eval --provider groq' },
+          { t: 'dim', text: '   3. Run: llmq dashboard' },
+          { t: 'br' },
+          { t: 'success', text: '✅  Project initialized successfully!' },
+        ]
+      },
+      // Scene 2: llmq eval (pass)
+      {
+        title: 'llmq eval --provider groq',
+        lines: [
+          { t: 'prompt', text: '$ ' },
+          { t: 'cmd', text: 'llmq eval --provider groq' },
+          { t: 'br' },
+          { t: 'br' },
+          { t: 'info', text: '📊 Running evaluation: groq / llama-3.1-8b-instant' },
+          { t: 'dim', text: '   Dataset: v1.0 · 12 test cases · 5 workers' },
+          { t: 'br' },
+          { t: 'dim', text: '   [████████████████████████████████████] 12/12  100%' },
+          { t: 'br' },
+          { t: 'header', text: '┌──────────────────────────────────────────────────┐' },
+          { t: 'header', text: '│              Evaluation Results                  │' },
+          { t: 'header', text: '├──────────────────┬──────────┬──────────┬─────────┤' },
+          { t: 'header', text: '│ Metric           │  Score   │ Threshold│ Status  │' },
+          { t: 'header', text: '├──────────────────┼──────────┼──────────┼─────────┤' },
+          { t: 'metric', text: '│ Task Success     │' },
+          { t: 'score', text: '  0.872   ' },
+          { t: 'dim', text: '│   0.800  │' },
+          { t: 'success', text: ' ✅ PASS ' },
+          { t: 'header', text: '│' },
+          { t: 'br' },
+          { t: 'metric', text: '│ Relevance        │' },
+          { t: 'score', text: '  0.915   ' },
+          { t: 'dim', text: '│   0.700  │' },
+          { t: 'success', text: ' ✅ PASS ' },
+          { t: 'header', text: '│' },
+          { t: 'br' },
+          { t: 'metric', text: '│ Hallucination    │' },
+          { t: 'score', text: '  0.042   ' },
+          { t: 'dim', text: '│   0.100  │' },
+          { t: 'success', text: ' ✅ PASS ' },
+          { t: 'header', text: '│' },
+          { t: 'br' },
+          { t: 'metric', text: '│ Consistency      │' },
+          { t: 'score', text: '  0.931   ' },
+          { t: 'dim', text: '│   0.800  │' },
+          { t: 'success', text: ' ✅ PASS ' },
+          { t: 'header', text: '│' },
+          { t: 'br' },
+          { t: 'header', text: '├──────────────────┴──────────┴──────────┴─────────┤' },
+          { t: 'header', text: '│ Overall Score: 0.890          Quality Gate: ' },
+          { t: 'success', text: 'PASS' },
+          { t: 'header', text: '  │' },
+          { t: 'br' },
+          { t: 'header', text: '└──────────────────────────────────────────────────┘' },
+          { t: 'br' },
+          { t: 'success', text: '✅  Quality gate PASSED · Run stored: a3f8c1d' },
+        ]
+      },
+      // Scene 3: CI fail
+      {
+        title: 'llmq eval --fail-on-gate (CI mode)',
+        lines: [
+          { t: 'prompt', text: '$ ' },
+          { t: 'cmd', text: 'llmq eval --provider groq --fail-on-gate' },
+          { t: 'br' },
+          { t: 'br' },
+          { t: 'info', text: '📊 Running evaluation: groq / llama-3.1-8b-instant' },
+          { t: 'dim', text: '   Dataset: v1.0 · 12 test cases · CI mode' },
+          { t: 'br' },
+          { t: 'dim', text: '   [████████████████████████████████████] 12/12  100%' },
+          { t: 'br' },
+          { t: 'header', text: '┌──────────────────────────────────────────────────┐' },
+          { t: 'header', text: '│              Evaluation Results                  │' },
+          { t: 'header', text: '├──────────────────┬──────────┬──────────┬─────────┤' },
+          { t: 'header', text: '│ Metric           │  Score   │ Threshold│ Status  │' },
+          { t: 'header', text: '├──────────────────┼──────────┼──────────┼─────────┤' },
+          { t: 'metric', text: '│ Task Success     │' },
+          { t: 'score', text: '  0.652   ' },
+          { t: 'dim', text: '│   0.800  │' },
+          { t: 'fail', text: ' ❌ FAIL ' },
+          { t: 'header', text: '│' },
+          { t: 'br' },
+          { t: 'metric', text: '│ Relevance        │' },
+          { t: 'score', text: '  0.815   ' },
+          { t: 'dim', text: '│   0.700  │' },
+          { t: 'success', text: ' ✅ PASS ' },
+          { t: 'header', text: '│' },
+          { t: 'br' },
+          { t: 'metric', text: '│ Hallucination    │' },
+          { t: 'score', text: '  0.180   ' },
+          { t: 'dim', text: '│   0.100  │' },
+          { t: 'fail', text: ' ❌ FAIL ' },
+          { t: 'header', text: '│' },
+          { t: 'br' },
+          { t: 'metric', text: '│ Consistency      │' },
+          { t: 'score', text: '  0.790   ' },
+          { t: 'dim', text: '│   0.800  │' },
+          { t: 'fail', text: ' ❌ FAIL ' },
+          { t: 'header', text: '│' },
+          { t: 'br' },
+          { t: 'header', text: '├──────────────────┴──────────┴──────────┴─────────┤' },
+          { t: 'header', text: '│ Overall Score: 0.564          Quality Gate: ' },
+          { t: 'fail', text: 'FAIL' },
+          { t: 'header', text: '  │' },
+          { t: 'br' },
+          { t: 'header', text: '└──────────────────────────────────────────────────┘' },
+          { t: 'br' },
+          { t: 'fail', text: '❌  Quality gate FAILED' },
+          { t: 'warn', text: '    Failed metrics: task_success, hallucination, consistency' },
+          { t: 'br' },
+          { t: 'br' },
+          { t: 'prompt', text: '$ ' },
+          { t: 'cmd', text: 'echo "Exit code: $?"' },
+          { t: 'br' },
+          { t: 'fail', text: 'Exit code: 1' },
+          { t: 'br' },
+          { t: 'br' },
+          { t: 'warn', text: '⚠  In CI, this non-zero exit code fails the pipeline!' },
+        ]
+      },
+      // Scene 4: Dashboard (switches to dash mockup)
+      {
+        title: 'llmq dashboard',
+        lines: [
+          { t: 'prompt', text: '$ ' },
+          { t: 'cmd', text: 'llmq dashboard' },
+          { t: 'br' },
+          { t: 'br' },
+          { t: 'info', text: '🌐  Starting LLMQ Dashboard...' },
+          { t: 'success', text: '  ✓ API server running on http://127.0.0.1:8000' },
+          { t: 'success', text: '  ✓ Database connected: llmqg.duckdb' },
+          { t: 'dim', text: '  → Open http://localhost:8000 in your browser' },
+          { t: 'br' },
+          { t: 'info', text: '📊  Dashboard preview shown below ↓' },
+        ],
+        showDashboard: true,
+      },
+    ];
+
+    let currentScene = 0;
+
+    function showScene(idx) {
+      currentScene = idx;
+      const btns = document.querySelectorAll('.scene-btn');
+      btns.forEach((b, i) => b.classList.toggle('active', i === idx));
+
+      const body = document.getElementById('termBody');
+      const dash = document.getElementById('dashboardFrame');
+      const title = document.getElementById('termTitle');
+      const scene = scenes[idx];
+
+      title.textContent = scene.title;
+      body.innerHTML = '';
+      dash.classList.remove('active');
+
+      scene.lines.forEach(l => {
+        if (l.t === 'br') {
+          body.appendChild(document.createElement('br'));
+        } else {
+          const span = document.createElement('span');
+          span.className = l.t;
+          span.textContent = l.text;
+          body.appendChild(span);
+        }
+      });
+
+      if (scene.showDashboard) {
+        dash.classList.add('active');
+      }
+      body.scrollTop = body.scrollHeight;
+    }
+
+    let autoplayTimer = null;
+    function autoplay() {
+      const btn = document.getElementById('playBtn');
+      btn.disabled = true;
+
+      const sceneDurations = [10, 20, 15, 15]; // seconds per scene
+      let elapsed = 0;
+      let sceneIdx = 0;
+      showScene(0);
+
+      autoplayTimer = setInterval(() => {
+        elapsed++;
+        document.getElementById('timer').textContent =
+          `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')} / 1:00`;
+
+        const cumulative = sceneDurations.reduce((acc, d, i) => {
+          acc.push((acc[i - 1] || 0) + d);
+          return acc;
+        }, []);
+
+        for (let i = 0; i < cumulative.length; i++) {
+          if (elapsed === (cumulative[i - 1] || 0) + 1 && i > sceneIdx) {
+            sceneIdx = i;
+            showScene(i);
+            break;
+          }
+        }
+
+        if (elapsed >= 60) {
+          clearInterval(autoplayTimer);
+          btn.disabled = false;
+          document.getElementById('timer').textContent = '1:00 / 1:00 ✅';
+        }
+      }, 1000);
+    }
+
+    // Init
+    showScene(0);
+  </script>
+</body>
+
+</html>

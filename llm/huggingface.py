@@ -2,7 +2,7 @@
 
 import httpx
 from typing import Dict, Any
-from .base import LLMProvider, LLMRequest, LLMResponse
+from .base import LLMProvider, LLMRequest, LLMResponse, ProviderNotConfiguredError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,17 +15,39 @@ class HuggingFaceProvider(LLMProvider):
         super().__init__(config)
         self.base_url = "https://api-inference.huggingface.co"
         self.model_name = config.get("model", "microsoft/DialoGPT-medium")
-        self.client = httpx.AsyncClient(
+        self.timeout = config.get("timeout", 60)  # HF can be slower
+        self._client = None
+        
+        # Initialize client if enabled
+        if self.enabled:
+            self._initialize_client()
+    
+    def _initialize_client(self):
+        """Initialize HTTP client with proper headers."""
+        # Only create client if we have an API key
+        if not self.api_key:
+            return
+            
+        self._client = httpx.AsyncClient(
             base_url=self.base_url,
             headers={
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
             },
-            timeout=config.get("timeout", 60)  # HF can be slower
+            timeout=self.timeout
         )
+    
+    @property
+    def client(self):
+        """Get HTTP client, ensuring provider is enabled."""
+        self.ensure_enabled()
+        return self._client
     
     async def generate(self, request: LLMRequest) -> LLMResponse:
         """Generate response using Hugging Face Inference API."""
+        # Ensure provider is enabled before making API calls
+        self.ensure_enabled()
+        
         try:
             # Build input text
             input_text = ""
@@ -102,4 +124,5 @@ class HuggingFaceProvider(LLMProvider):
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.client.aclose()
+        if self._client:
+            await self._client.aclose()

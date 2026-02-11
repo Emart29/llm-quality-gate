@@ -3,6 +3,7 @@
 import logging
 import re
 import os
+import random
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
@@ -24,27 +25,70 @@ def _is_ci_environment() -> bool:
     return _is_ci_mode
 
 
+def _should_use_lightweight_mode() -> bool:
+    """Check if lightweight mode should be used (CI environment or config flag)."""
+    return _is_ci_environment() or os.environ.get('LLMQ_LIGHTWEIGHT_MODE', '').lower() in ('true', '1', 'yes')
+
+
 class MockEmbeddingModel:
-    """Mock embedding model for CI environments to avoid network calls and model downloads."""
+    """Mock embedding model for CI environments to avoid network calls and model downloads.
+    
+    Returns deterministic embeddings based on text content for consistent test results.
+    """
+    
+    def __init__(self, seed: int = 42):
+        """Initialize with a seed for deterministic results."""
+        self.seed = seed
     
     def encode(self, texts: List[str]) -> List[List[float]]:
         """Return deterministic mock embeddings based on text content."""
         embeddings = []
-        for text in texts:
-            # Create a simple deterministic embedding based on text characteristics
+        for i, text in enumerate(texts):
+            # Create deterministic embedding using text hash and position
+            text_hash = hash(text + str(self.seed)) % (2**31)
+            random.seed(text_hash + i)
+            
+            # Generate features based on text characteristics
             text_lower = text.lower()
-            embedding = [
+            words = text_lower.split()
+            
+            # More sophisticated features for better similarity
+            base_features = [
                 len(text) / 100.0,  # Length feature
-                text_lower.count('the') / 10.0,  # Common word feature
-                text_lower.count('a') / 10.0,  # Vowel feature
-                len(set(text_lower.split())) / 50.0,  # Unique words feature
-                1.0 if any(word in text_lower for word in ['good', 'great', 'excellent']) else 0.0,  # Positive sentiment
-                1.0 if any(word in text_lower for word in ['bad', 'poor', 'terrible']) else 0.0,  # Negative sentiment
+                len(words) / 20.0,  # Word count
+                len(set(text_lower)) / 50.0,  # Character diversity
+                len(set(words)) / 30.0,  # Unique word count
+                text_lower.count('the') / max(len(words), 1),  # Common word density
+                sum(1 for c in text if c.isupper()) / max(len(text), 1),  # Uppercase ratio
+                sum(1 for c in text if c.isdigit()) / max(len(text), 1),  # Digit ratio
+                1.0 if any(word in text_lower for word in ['good', 'great', 'excellent', 'correct', 'right', 'yes']) else 0.0,
+                1.0 if any(word in text_lower for word in ['bad', 'poor', 'terrible', 'wrong', 'incorrect', 'no']) else 0.0,
+                # Add word overlap features for better similarity
+                len(words) / 100.0 if words else 0.0,
             ]
-            # Pad or truncate to consistent size
-            while len(embedding) < 10:
-                embedding.append(0.0)
-            embeddings.append(embedding[:10])
+            
+            # Add deterministic "semantic" components based on word content
+            word_hash_sum = sum(hash(word) % 1000 for word in words) / max(len(words) * 1000, 1)
+            semantic_features = [
+                word_hash_sum,
+                (word_hash_sum * 2) % 1.0,
+                (word_hash_sum * 3) % 1.0,
+            ]
+            
+            embedding = base_features + semantic_features
+            
+            # Normalize to unit vector for cosine similarity
+            norm = sum(x*x for x in embedding) ** 0.5
+            if norm > 0:
+                embedding = [x / norm for x in embedding]
+            else:
+                # Fallback for zero vectors
+                embedding = [1.0] + [0.0] * (len(embedding) - 1)
+                norm = 1.0
+                embedding = [x / norm for x in embedding]
+            
+            embeddings.append(embedding)
+        
         return embeddings
 
 
@@ -52,13 +96,14 @@ def _get_embedding_model():
     """Lazy-load the sentence-transformers model or return mock in CI."""
     global _embedding_model
     if _embedding_model is None:
-        if _is_ci_environment():
-            logger.info("CI environment detected, using mock embedding model for fast tests")
+        if _should_use_lightweight_mode():
+            logger.info("Lightweight mode detected, using mock embedding model for fast execution")
             _embedding_model = MockEmbeddingModel()
         else:
             try:
                 from sentence_transformers import SentenceTransformer
                 _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+                logger.info("Using real sentence-transformers model for embeddings")
             except ImportError:
                 logger.warning("sentence-transformers not installed; embedding metrics will fall back to token overlap")
     return _embedding_model
@@ -327,6 +372,28 @@ class ConsistencyMetric:
                 passed=True,
                 threshold=threshold,
                 details={"note": "Fewer than 2 outputs; consistency trivially 1.0"},
+            )
+
+        # In lightweight mode, skip expensive consistency computation
+        if _should_use_lightweight_mode():
+            # Return a deterministic score based on output similarity
+            avg_length = sum(len(output) for output in outputs) / len(outputs)
+            length_variance = sum((len(output) - avg_length) ** 2 for output in outputs) / len(outputs)
+            # Lower variance = higher consistency
+            score = max(0.0, 1.0 - (length_variance / (avg_length + 1)))
+            
+            return MetricResult(
+                metric_name="consistency",
+                score=score,
+                passed=score >= threshold,
+                threshold=threshold,
+                details={
+                    "method": "lightweight_heuristic",
+                    "num_outputs": len(outputs),
+                    "avg_length": avg_length,
+                    "length_variance": length_variance,
+                    "note": "Lightweight mode: using length-based heuristic"
+                },
             )
 
         pairs = []

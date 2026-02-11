@@ -68,6 +68,7 @@ class EvaluationService:
                 "default_model": providers.get(name, {}).get("model"),
             }
             for name in sorted(providers.keys())
+            if availability.get(name, False)  # Only include enabled providers
         ]
 
     def _regression_delta(self, metric: str, baseline: Optional[float], current: Optional[float]) -> float:
@@ -458,6 +459,7 @@ class EvaluationService:
                     "task_success_score": avg("task_success_score"),
                     "relevance_score": avg("relevance_score"),
                     "hallucination_score": avg("hallucination_score"),
+                    "consistency_score": avg("consistency_score"),
                     "quality_gate_pass_rate": sum(1 for r in group if r.get("quality_gate_passed")) / n,
                 }
             )

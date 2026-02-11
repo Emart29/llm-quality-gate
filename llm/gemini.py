@@ -2,7 +2,7 @@
 
 import google.genai as genai
 from typing import Dict, Any
-from .base import LLMProvider, LLMRequest, LLMResponse
+from .base import LLMProvider, LLMRequest, LLMResponse, ProviderNotConfiguredError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,20 +14,29 @@ class GeminiProvider(LLMProvider):
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.model_name = config.get("model", "gemini-1.5-flash")
+        self.client = None
         
-        # Initialize the client
+        # Initialize client if enabled
+        if self.enabled:
+            self._initialize_client()
+        
+    def _initialize_client(self):
+        """Initialize Gemini client with proper API key."""
+        # Only create client if we have an API key
+        if not self.api_key:
+            return
+            
         try:
-            if self.api_key:
-                self.client = genai.Client(api_key=self.api_key)
-            else:
-                logger.error("No API key provided for Gemini")
-                self.client = None
+            self.client = genai.Client(api_key=self.api_key)
         except Exception as e:
             logger.error(f"Failed to initialize Gemini client: {e}")
             self.client = None
     
     async def generate(self, request: LLMRequest) -> LLMResponse:
         """Generate response using Gemini API."""
+        # Ensure provider is enabled before making API calls
+        self.ensure_enabled()
+        
         try:
             if not self.client:
                 return LLMResponse(

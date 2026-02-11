@@ -1,257 +1,59 @@
-# LLMQ - LLM Quality Gate
+# LLMQ
 
+[![Tests](https://github.com/Emart29/llm-quality-gate/actions/workflows/tests.yml/badge.svg)](https://github.com/Emart29/llm-quality-gate/actions/workflows/tests.yml)
 [![LLM Quality Gate](https://github.com/Emart29/llm-quality-gate/actions/workflows/llm-quality-gate.yml/badge.svg)](https://github.com/Emart29/llm-quality-gate/actions/workflows/llm-quality-gate.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)](https://github.com/Emart29/llm-quality-gate)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Emart29/llm-quality-gate/pulls)
 
-**LLMQ is a provider-agnostic, CI-first LLM evaluation framework that prevents prompt and model regressions before deployment.**
+**An open-source LLM regression testing & CI quality gate framework.**
 
-## What is LLMQ?
+Prevent prompt and model regressions before they reach production with automated testing across 8 LLM providers.
 
-LLMQ is a **developer tool** and **CI quality gate** that automatically tests, measures, and enforces quality standards across any LLM provider. It's an **evaluation framework** with an optional **dashboard** (not a SaaS) designed to integrate seamlessly into your development workflow.
+## Why LLMQ?
 
-- **Dev Tool**: Test prompts and models locally during development
-- **CI Quality Gate**: Automatically block deployments that fail quality thresholds
-- **Evaluation Framework**: Comprehensive metrics and provider comparison
-- **Optional Dashboard**: Web UI for visualization and historical tracking
+LLM applications fail silently. A prompt change that works in development can degrade performance in production. Model updates can break existing functionality. Without systematic testing, these regressions go undetected until users complain.
 
-## Target Audience
+**Common LLM Regression Examples:**
+- Prompt optimization improves one task but breaks another
+- Model updates change response format, breaking downstream parsing
+- Provider API changes affect response quality
+- Temperature adjustments reduce consistency
+- Context length changes truncate important information
 
-- **LLM Application Developers** building production systems
-- **DevOps Engineers** implementing quality gates in CI/CD pipelines
-- **ML Engineers** benchmarking and comparing LLM providers
-- **QA Teams** establishing automated testing for LLM-powered features
-
-## Core Value Proposition
-
-✅ **Prevent Regressions**: Catch prompt and model degradations before they reach production  
-✅ **Provider Agnostic**: Test across 8 LLM providers with unified metrics  
-✅ **CI-First Design**: Built for automated quality enforcement in GitHub Actions  
-✅ **Zero Lock-in**: Self-hosted with DuckDB storage and optional dashboard  
-
-## Features
-
-### LLM Providers (8 Supported)
-- **Free/Open**: Groq, HuggingFace, OpenRouter
-- **Proprietary**: OpenAI, Anthropic Claude, Google Gemini  
-- **Local**: Ollama, LocalAI
-
-### Evaluation Metrics (4 Core)
-- **Task Success**: Exact match + semantic similarity
-- **Relevance**: Embedding-based cosine similarity
-- **Hallucination**: LLM-as-Judge + heuristic fallback
-- **Consistency**: Pairwise similarity across multiple runs
-
-### Quality Gates & CI/CD
-- Configurable thresholds with automatic pass/fail enforcement
-- GitHub Actions integration with PR comments
-- Regression detection against baseline metrics
-- Canary evaluation workflow (subset → full promotion)
-
-### Storage & Analytics
-- DuckDB persistence with historical tracking
-- Provider benchmarking and trend analysis
-- Web dashboard with Chart.js visualizations
-- FastAPI backend with comprehensive REST API
-
-## Architecture
-
-![LLMQ architecture flow from prompt to dashboard](docs/architecture.svg)
-
-Flow: **Prompt → Evaluation Runner → Provider Adapters → Metrics Engine → Quality Gates → Storage → Dashboard**
-
-## Dashboard Preview
-
-### Evaluation summary view
-
-![Evaluation summary dashboard mock](docs/images/evaluation-summary.svg)
-
-### Historical runs
-
-![Historical runs dashboard mock](docs/images/historical-runs.svg)
-
-### Model comparison
-
-![Model comparison dashboard mock](docs/images/model-comparison.svg)
+LLMQ catches these issues before deployment with automated regression testing and quality gates.
 
 ## Quick Start
 
-### Installation
+Get running in 5 minutes:
 
 ```bash
-# Clone the repository
-git clone https://github.com/Emart29/llm-quality-gate.git
-cd llm-quality-gate
+# 1. Install
+pip install -e .
 
-# Install dependencies
-pip install -r requirements.txt
+# 2. Initialize project
+llmq init
 
-# Configure API keys
-cp .env.example .env
-# Edit .env with your API keys (see Environment Configuration below)
+# 3. Set API key (copy .env.example to .env)
+echo "GROQ_API_KEY=your_key_here" >> .env
 
-# Optional: Create CLI shortcut (Unix/Linux/Mac)
-chmod +x llmq
-export PATH="$PWD:$PATH"  # Add to your shell profile
-# Now you can use: llmq dashboard
-```
-
-### Environment Configuration
-
-LLMQ requires API keys for the LLM providers you want to use. The `.env.example` file contains comprehensive documentation for all supported providers.
-
-**Quick Setup:**
-```bash
-# 1. Copy the example file
-cp .env.example .env
-
-# 2. Edit .env and add your API keys
-# At minimum, add one provider key (e.g., GROQ_API_KEY for free usage)
-
-# 3. Test your configuration
-python -m integrations.cli.main providers
-```
-
-**Supported Providers:**
-- **Free/Open**: Groq (recommended for getting started), HuggingFace, OpenRouter
-- **Proprietary**: OpenAI, Anthropic Claude, Google Gemini
-- **Local**: Ollama, LocalAI (no API keys needed)
-
-**Provider Recommendations:**
-- **Getting Started**: Use Groq (free, fast, good models)
-- **Production**: OpenAI GPT-3.5/4 or Anthropic Claude
-- **Privacy/Cost**: Ollama with local models
-- **Experimentation**: HuggingFace for open model access
-
-### Run Your First Evaluation
-
-```bash
-# Start the dashboard + API server
-llmq dashboard
-
-# In another terminal, run an evaluation
+# 4. Run evaluation
 llmq eval --provider groq
-
-# View results at http://localhost:8000
 ```
 
-## Usage Examples
+View results at `http://localhost:8000` after running `llmq dashboard`.
 
-### Basic Evaluation
+## CI Integration
 
-Evaluate a single provider against your test dataset:
-
-```bash
-# Quick evaluation with Groq (free, fast)
-llmq eval --provider groq
-
-# Evaluate with OpenAI GPT-3.5
-llmq eval --provider openai
-
-# Use specific model
-llmq eval --provider openai --model gpt-4
-
-# Custom dataset
-llmq eval --provider groq --dataset my-tests.json
-```
-
-### Model Comparison
-
-Compare multiple providers to find the best one:
-
-```bash
-# Run evaluations
-llmq eval --provider groq
-llmq eval --provider openai  
-llmq eval --provider claude
-
-# Compare results
-llmq compare
-```
-
-Output:
-```
-Provider/Model                       Runs    Score     Task    Relev   Halluc   Gate
-----------------------------------------------------------------------------------------
-groq/llama3-8b-8192                    12    85.2%    88.1%   82.4%     8.1%    92%
-openai/gpt-3.5-turbo                   8     91.7%    94.2%   89.1%     5.3%   100%
-claude/claude-3-haiku-20240307         5     89.4%    91.8%   87.2%     6.7%    80%
-```
-
-### Running Dashboard
-
-Launch the web interface for visual analysis:
-
-```bash
-# Start dashboard (default: http://localhost:8000)
-llmq dashboard
-
-# Custom host/port
-llmq dashboard --host 0.0.0.0 --port 3000
-
-# Development mode with auto-reload
-llmq dashboard --reload
-```
-
-### CI Integration with Fail Thresholds
-
-Use in CI/CD pipelines to block deployments on quality failures:
-
-```bash
-# Fail CI build if quality gate fails
-llmq eval --provider openai --fail-on-gate
-
-# Example GitHub Actions workflow
-name: LLM Quality Gate
-on: [push, pull_request]
-jobs:
-  quality-gate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install -r requirements.txt
-      - name: Run Quality Gate
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          llmq dashboard &
-          sleep 10  # Wait for server to start
-          llmq eval --provider openai --fail-on-gate
-```
-
-### Advanced Usage
-
-```bash
-# High-performance evaluation
-llmq eval --provider groq --workers 10 --timeout 60
-
-# Skip expensive LLM-as-judge metrics for speed
-llmq eval --provider groq --no-judge
-
-# Non-deterministic evaluation (temperature > 0)
-llmq eval --provider openai --non-deterministic
-
-# Custom configuration file
-llmq eval --provider groq --config my-config.yaml
-
-# View historical runs
-llmq runs --provider openai --limit 20
-
-# Update quality gate thresholds
-llmq settings --set '{"quality_gates": {"task_success_threshold": 0.9}}'
-```
-
-## CI Integration Example
-
-Add to your `.github/workflows/quality-gate.yml`:
+Add to `.github/workflows/llm-quality-gate.yml`:
 
 ```yaml
 name: LLM Quality Gate
 
 on:
   pull_request:
-    paths: ['prompts/**', 'llm/**', 'config.yaml']
+    paths: ['prompts/**', 'llm/**', 'llmq.yaml']
 
 jobs:
   quality-gate:
@@ -262,306 +64,166 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Install LLMQ
+        run: pip install -e .
       
-      - name: Run LLM Quality Gate
+      - name: Run Quality Gate
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          python -m ci.runner --provider groq --fail-on-regression
-      
-      - name: Comment PR with results
-        if: always()
-        uses: actions/github-script@v7
-        # ... (see .github/workflows/llm-quality-gate.yml for full example)
+          llmq eval --provider groq --fail-on-gate
 ```
 
-## Usage Examples
+## Architecture
 
-### CLI Usage
+![LLMQ Architecture](docs/architecture.svg)
+
+**Flow:** Dataset → Provider → Metrics → Quality Gates → Results
+
+## Supported Providers
+
+| Provider | Models | API Key Required | Cost |
+|----------|--------|------------------|------|
+| **Groq** | Llama 3.1, Mixtral | ✅ | Free tier |
+| **OpenAI** | GPT-3.5, GPT-4 | ✅ | Paid |
+| **Claude** | Claude 3 Haiku/Sonnet | ✅ | Paid |
+| **Gemini** | Gemini 1.5 Flash/Pro | ✅ | Free tier |
+| **HuggingFace** | Open models | ✅ | Free |
+| **OpenRouter** | 100+ models | ✅ | Varies |
+| **Ollama** | Local models | ❌ | Free |
+| **LocalAI** | Local models | ❌ | Free |
+
+## CLI Commands
 
 ```bash
-# Evaluate single provider
-python -m integrations.cli.main eval --provider groq
+# Project setup
+llmq init                           # Initialize new project
+llmq doctor                         # Check system health
 
-# Compare multiple providers
-python -m integrations.cli.main compare --providers groq,openai,claude
+# Evaluation
+llmq eval --provider groq           # Run evaluation
+llmq eval --provider openai --fail-on-gate  # CI mode
+llmq compare                        # Compare providers
 
-# List available providers
-python -m integrations.cli.main providers
-
-# Run canary evaluation (25% of tests, auto-promote if passing)
-python -m integrations.cli.main eval --provider openai --canary
+# Management
+llmq providers                      # List provider status
+llmq runs --limit 10               # View recent runs
+llmq dashboard                      # Start web interface
+llmq settings --set '{"quality_gates": {"task_success_threshold": 0.9}}'
 ```
 
-### API Usage
+## Dashboard
 
-```bash
-# Start evaluation
-curl -X POST http://localhost:8000/api/v1/evaluate \
-  -H "Content-Type: application/json" \
-  -d '{"provider": "groq", "model": "llama3-8b-8192"}'
+![Dashboard Overview](docs/images/evaluation-summary.svg)
 
-# Get historical runs
-curl http://localhost:8000/api/v1/runs
+> 🎬 **[Interactive Demo](docs/demo.html)** — See the full CLI + Dashboard walkthrough.
 
-# Compare providers
-curl http://localhost:8000/api/v1/compare?providers=groq,openai
-
-# Set baseline for regression detection
-curl -X POST http://localhost:8000/api/v1/runs/{run_id}/baseline
-```
-
-### Python Integration
-
-```python
-from evals.service import EvaluationService
-
-service = EvaluationService()
-
-# Run evaluation
-result = await service.evaluate_provider(
-    provider="groq",
-    model="llama3-8b-8192"
-)
-
-# Check quality gate
-if result["quality_gate"]["passed"]:
-    print("✅ Quality gate passed!")
-else:
-    print("❌ Quality gate failed!")
-    print(f"Failed metrics: {result['quality_gate']['failed_metrics']}")
-```
-
-## CI Optimization
-
-LLMQ automatically detects CI environments and optimizes performance for fast, reliable testing.
-
-### Automatic CI Detection
-
-When the `CI` environment variable is set to `true`, `1`, or `yes`, LLMQ automatically switches to lightweight mode:
-
-```bash
-# CI environments (GitHub Actions, GitLab CI, etc.)
-export CI=true
-python -m pytest tests/  # Uses mock embeddings, runs in <60s
-```
-
-### CI Mode Optimizations
-
-**Embedding Model**: Replaces SentenceTransformer downloads with a fast, deterministic mock model
-- ✅ No network calls or model downloads
-- ✅ Deterministic results for consistent testing
-- ✅ ~50x faster than real embeddings
-- ✅ Maintains all test functionality
-
-**Semantic Similarity**: Uses lightweight mock embeddings that provide:
-- Text length and vocabulary features
-- Deterministic similarity scores
-- Full compatibility with all metrics (Task Success, Relevance, Hallucination, Consistency)
-
-### Local vs CI Behavior
-
-| Environment | Embedding Model | Network Calls | Test Speed |
-|-------------|----------------|---------------|------------|
-| **Local** (`CI` not set) | Real SentenceTransformer | Downloads models from HuggingFace | ~2-5 minutes |
-| **CI** (`CI=true`) | Mock embedding model | None | <60 seconds |
-
-### Verification
-
-```bash
-# Test in CI mode
-export CI=true
-python -m pytest tests/ -v  # Fast, no downloads
-
-# Test in local mode  
-unset CI
-python -m pytest tests/ -v  # Full embeddings, slower
-```
-
-The optimization is completely transparent - all tests pass in both modes with identical functionality.
+**Features:**
+- Historical performance tracking
+- Provider comparison charts
+- Quality gate pass/fail trends
+- Test case drill-down analysis
 
 ## Configuration
 
+`llmq.yaml`:
 ```yaml
 llm:
   default_provider: "groq"
   temperature: 0.0
+  max_tokens: 1000
 
 providers:
   groq:
     api_key_env: "GROQ_API_KEY"
-    model: "llama3-8b-8192"
+    model: "llama-3.1-8b-instant"
   openai:
     api_key_env: "OPENAI_API_KEY"
     model: "gpt-3.5-turbo"
-
-roles:
-  generator:
-    provider: "groq"      # Fast, free for generation
-  judge:
-    provider: "openai"    # Reliable for evaluation
 
 quality_gates:
   task_success_threshold: 0.8
   relevance_threshold: 0.7
   hallucination_threshold: 0.1
-  consistency_threshold: 0.8
+```
+
+`evals/dataset.json`:
+```json
+{
+  "test_cases": [
+    {
+      "id": "example_1",
+      "task_type": "question_answering",
+      "input": "What is the capital of France?",
+      "expected_output": "Paris",
+      "context": "Geography question",
+      "reference": "Paris is the capital of France."
+    }
+  ]
+}
+```
+
+## Metrics
+
+- **Task Success**: Exact match + semantic similarity
+- **Relevance**: Embedding-based cosine similarity  
+- **Hallucination**: LLM-as-judge detection
+- **Consistency**: Multi-run variance analysis
+
+## API
+
+```bash
+# Start evaluation
+curl -X POST http://localhost:8000/api/v1/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{"provider": "groq"}'
+
+# Get results
+curl http://localhost:8000/api/v1/runs
+
+# Provider comparison
+curl http://localhost:8000/api/v1/compare
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make changes and add tests
+4. Run tests: `python -m pytest tests/ -v`
+5. Submit a pull request
+
+**Development setup:**
+```bash
+
+git clone https://github.com/Emart29/llm-quality-gate.git
+cd llm-quality-gate
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -e .
+llmq doctor  # Verify setup
 ```
 
 ## Roadmap
 
-### v1.1 (Next Release)
-- [ ] Slack/Discord webhook integrations
-- [ ] Custom metric plugins
-- [ ] A/B testing framework
-- [ ] Performance benchmarking metrics
+**v1.1**
+- Custom metric plugins
+- Slack/Discord webhooks
+- A/B testing framework
+- Performance benchmarking
 
-### v1.2 (Future)
-- [ ] Multi-language dataset support
-- [ ] Advanced regression analysis
-- [ ] Cost tracking per provider
-- [ ] Distributed evaluation workers
+**v1.2**
+- Multi-language datasets
+- Advanced regression analysis
+- Cost tracking per provider
+- Distributed evaluation
 
-### v2.0 (Long-term)
-- [ ] Visual prompt debugging
-- [ ] Automated prompt optimization
-- [ ] Enterprise SSO integration
-- [ ] Advanced analytics dashboard
-
-## Demo Script
-
-### Setup (30 seconds)
-```bash
-# 1. Clone and setup
-git clone https://github.com/Emart29/llm-quality-gate.git
-cd llm-quality-gate
-pip install -r requirements.txt
-
-# 2. Configure API key (show .env.example)
-cp .env.example .env
-# Add GROQ_API_KEY=your_key_here
-
-# 3. Start dashboard
-llmq dashboard
-```
-
-**Talking Points:**
-- "LLMQ is a CI-first evaluation framework for LLM applications"
-- "Works with 8 providers - from free Groq to premium OpenAI/Claude"
-- "Zero configuration needed - just add your API keys"
-
-### Core Demo (90 seconds)
-
-**1. Provider Status (15s)**
-```bash
-llmq providers
-```
-*Show available providers with status indicators*
-
-**2. Run Evaluation (30s)**
-```bash
-llmq eval --provider groq
-```
-*Highlight the 4 core metrics as they appear:*
-- Task Success (exact match + semantic similarity)
-- Relevance (embedding-based)
-- Hallucination Detection (LLM-as-judge)
-- Consistency (multiple runs)
-
-**3. Dashboard View (30s)**
-*Switch to browser showing http://localhost:8000*
-- Historical trends
-- Provider comparison charts
-- Quality gate pass/fail status
-
-**4. CI Integration (15s)**
-```bash
-llmq eval --provider groq --fail-on-gate
-```
-*Show how it exits with error code 1 on failure*
-
-### Advanced Features (60 seconds)
-
-**1. Multi-Provider Comparison (30s)**
-```bash
-llmq eval --provider openai
-llmq compare
-```
-*Show side-by-side performance table*
-
-**2. Quality Gate Configuration (30s)**
-```bash
-llmq settings --set '{"quality_gates": {"task_success_threshold": 0.9}}'
-```
-*Demonstrate threshold adjustment and re-evaluation*
-
-### Key Talking Points
-
-**Problem Statement:**
-- "LLM applications fail silently in production"
-- "No standardized way to test prompt changes"
-- "Provider performance varies significantly"
-
-**Solution Benefits:**
-- "Catch regressions before deployment"
-- "Compare 8 providers with unified metrics"
-- "Integrates seamlessly into CI/CD pipelines"
-- "Self-hosted - your data never leaves your infrastructure"
-
-**Technical Highlights:**
-- "Provider-agnostic architecture"
-- "4 comprehensive metrics covering accuracy, relevance, and safety"
-- "Built for CI - tests run in under 60 seconds"
-- "Web-first API design with optional CLI"
-
-**Call to Action:**
-- "Perfect for LLM app developers, DevOps teams, and QA engineers"
-- "Start with free Groq, scale to production with OpenAI/Claude"
-- "Open source, MIT licensed, ready for production use"
-
-
-## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Setup
-
-```bash
-# Clone and setup
-git clone https://github.com/Emart29/llm-quality-gate.git
-cd llm-quality-gate
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-
-# Run tests
-python -m pytest tests/ -v
-
-# Start development server
-llmq dashboard --reload
-```
-
-### Project Structure
-
-```
-llm-quality-gate/
-├── llm/                    # LLM provider abstractions
-├── evals/                  # Evaluation framework & metrics
-├── storage/                # DuckDB persistence layer
-├── dashboard/              # FastAPI backend + web UI
-├── ci/                     # CI/CD integration scripts
-├── integrations/           # CLI and external integrations
-├── tests/                  # Test suite
-└── .github/workflows/      # GitHub Actions
-```
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
+**v2.0**
+- Visual prompt debugging
+- Automated prompt optimization
+- Enterprise SSO integration
+- Advanced analytics
 
 ---
 
-**Questions?** Open an issue or start a discussion. We're here to help you implement quality gates for your LLM applications.
+**License:** MIT | **Python:** 3.8+ | **Status:** Production Ready
