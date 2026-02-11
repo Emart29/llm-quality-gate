@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="800" viewBox="0 0 1400 800">
+  <rect width="1400" height="800" fill="#f5f7fa"/>
+  <text x="60" y="80" font-size="48" font-family="Arial" font-weight="700" fill="#1e293b">Model Comparison</text>
+  <text x="60" y="120" font-size="24" font-family="Arial" fill="#64748b">Side-by-side provider performance for current dataset</text>
+  <rect x="60" y="170" width="1280" height="570" rx="18" fill="#fff" stroke="#e2e8f0"/>
+  <text x="90" y="220" font-size="32" fill="#1e293b" font-family="Arial" font-weight="700">Average Score by Provider</text>
+  <text x="100" y="300" font-size="26" fill="#1e293b" font-family="Arial">openai:gpt-4o-mini</text><rect x="500" y="278" width="700" height="32" rx="10" fill="#e2e8f0"/><rect x="500" y="278" width="623" height="32" rx="10" fill="#2563eb"/><text x="1230" y="302" font-size="26" fill="#64748b" font-family="Arial">0.89</text>
+  <text x="100" y="395" font-size="26" fill="#1e293b" font-family="Arial">groq:llama3-8b</text><rect x="500" y="373" width="700" height="32" rx="10" fill="#e2e8f0"/><rect x="500" y="373" width="588" height="32" rx="10" fill="#16a34a"/><text x="1230" y="397" font-size="26" fill="#64748b" font-family="Arial">0.84</text>
+  <text x="100" y="490" font-size="26" fill="#1e293b" font-family="Arial">claude:haiku</text><rect x="500" y="468" width="700" height="32" rx="10" fill="#e2e8f0"/><rect x="500" y="468" width="574" height="32" rx="10" fill="#9333ea"/><text x="1230" y="492" font-size="26" fill="#64748b" font-family="Arial">0.82</text>
+  <text x="100" y="585" font-size="26" fill="#1e293b" font-family="Arial">gemini:1.5-flash</text><rect x="500" y="563" width="700" height="32" rx="10" fill="#e2e8f0"/><rect x="500" y="563" width="546" height="32" rx="10" fill="#f97316"/><text x="1230" y="587" font-size="26" fill="#64748b" font-family="Arial">0.78</text>
+</svg>
