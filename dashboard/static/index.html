@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LLMQ - Quality Gate Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLMQ Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script>
@@ -19,348 +19,299 @@
       }
     }
   </script>
-  <style>
-    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-    .metric-card { transition: transform 0.15s ease; }
-    .metric-card:hover { transform: translateY(-2px); }
-    .tab-active { border-bottom: 2px solid #6366f1; color: #818cf8; }
-  </style>
 </head>
 <body class="bg-surface-1 text-gray-200 min-h-screen">
-
-  <!-- Navbar -->
-  <nav class="bg-surface-2 border-b border-surface-3 px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center font-bold text-white text-sm">Q</div>
-      <span class="text-lg font-semibold text-white">LLMQ Dashboard</span>
-    </div>
-    <div class="flex gap-1 text-sm">
-      <button onclick="showTab('overview')"   id="tab-overview"   class="px-4 py-2 rounded-lg hover:bg-surface-3 tab-active">Overview</button>
-      <button onclick="showTab('runs')"       id="tab-runs"       class="px-4 py-2 rounded-lg hover:bg-surface-3">Runs</button>
-      <button onclick="showTab('compare')"    id="tab-compare"    class="px-4 py-2 rounded-lg hover:bg-surface-3">Compare</button>
+  <nav class="bg-surface-2 border-b border-surface-3 px-4 sm:px-6 py-3 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center font-bold text-white">Q</div>
+        <h1 class="text-lg font-semibold">LLMQ Dashboard</h1>
+      </div>
+      <div id="toast" class="hidden text-xs px-3 py-1 rounded bg-surface-3 border border-surface-3"></div>
     </div>
   </nav>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-
-    <!-- ═══ OVERVIEW TAB ═══ -->
-    <section id="page-overview">
-      <!-- KPI Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="metric-card bg-surface-2 rounded-xl p-5 border border-surface-3">
-          <p class="text-xs text-gray-400 uppercase tracking-wide">Task Success</p>
-          <p id="kpi-task-success" class="text-3xl font-bold text-emerald-400 mt-1">--</p>
+  <main class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+    <section class="grid lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-2 bg-surface-2 border border-surface-3 rounded-xl p-4">
+        <h2 class="font-semibold mb-3">Provider & Model Management</h2>
+        <div class="grid md:grid-cols-2 gap-4">
+          <label class="text-sm">Generator Provider
+            <select id="generator-provider" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-3 py-2"></select>
+          </label>
+          <label class="text-sm">Generator Model
+            <input id="generator-model" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-3 py-2" />
+          </label>
+          <label class="text-sm">Judge Provider
+            <select id="judge-provider" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-3 py-2"></select>
+          </label>
+          <label class="text-sm">Judge Model
+            <input id="judge-model" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-3 py-2" />
+          </label>
         </div>
-        <div class="metric-card bg-surface-2 rounded-xl p-5 border border-surface-3">
-          <p class="text-xs text-gray-400 uppercase tracking-wide">Avg Relevance</p>
-          <p id="kpi-relevance" class="text-3xl font-bold text-blue-400 mt-1">--</p>
+        <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <label class="text-xs">Task Success
+            <input id="th-task" type="number" min="0" max="1" step="0.01" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-2 py-1.5" />
+          </label>
+          <label class="text-xs">Relevance
+            <input id="th-rel" type="number" min="0" max="1" step="0.01" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-2 py-1.5" />
+          </label>
+          <label class="text-xs">Hallucination
+            <input id="th-hal" type="number" min="0" max="1" step="0.01" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-2 py-1.5" />
+          </label>
+          <label class="text-xs">Consistency
+            <input id="th-cons" type="number" min="0" max="1" step="0.01" class="mt-1 w-full bg-surface-3 border border-surface-3 rounded px-2 py-1.5" />
+          </label>
         </div>
-        <div class="metric-card bg-surface-2 rounded-xl p-5 border border-surface-3">
-          <p class="text-xs text-gray-400 uppercase tracking-wide">Hallucination Risk</p>
-          <p id="kpi-hallucination" class="text-3xl font-bold text-red-400 mt-1">--</p>
-        </div>
-        <div class="metric-card bg-surface-2 rounded-xl p-5 border border-surface-3">
-          <p class="text-xs text-gray-400 uppercase tracking-wide">Gate Pass Rate</p>
-          <p id="kpi-gate" class="text-3xl font-bold text-brand-light mt-1">--</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button onclick="saveSettings()" class="bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded text-sm">Save Settings</button>
+          <button onclick="startEvaluation()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm">Start Evaluation</button>
         </div>
       </div>
 
-      <!-- Charts row -->
-      <div class="grid md:grid-cols-2 gap-4 mb-6">
-        <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
-          <h3 class="text-sm font-semibold text-gray-300 mb-3">Quality Trends</h3>
-          <canvas id="chart-trends" height="220"></canvas>
-        </div>
-        <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
-          <h3 class="text-sm font-semibold text-gray-300 mb-3">Provider Performance</h3>
-          <canvas id="chart-providers" height="220"></canvas>
-        </div>
-      </div>
-
-      <!-- Recent Runs -->
-      <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
-        <h3 class="text-sm font-semibold text-gray-300 mb-3">Recent Evaluation Runs</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-gray-400 border-b border-surface-3">
-                <th class="text-left py-2 px-3">Provider / Model</th>
-                <th class="text-left py-2 px-3">Dataset</th>
-                <th class="text-center py-2 px-3">Tests</th>
-                <th class="text-center py-2 px-3">Score</th>
-                <th class="text-center py-2 px-3">Gate</th>
-                <th class="text-left py-2 px-3">Time</th>
-              </tr>
-            </thead>
-            <tbody id="recent-runs-body"></tbody>
-          </table>
-        </div>
+      <div class="bg-surface-2 border border-surface-3 rounded-xl p-4">
+        <h2 class="font-semibold mb-3">Live Evaluations</h2>
+        <div id="live-jobs" class="space-y-2 text-sm"></div>
       </div>
     </section>
 
-    <!-- ═══ RUNS TAB ═══ -->
-    <section id="page-runs" class="hidden">
-      <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
-        <h3 class="text-sm font-semibold text-gray-300 mb-3">All Evaluation Runs</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-gray-400 border-b border-surface-3">
-                <th class="text-left py-2 px-3">ID</th>
-                <th class="text-left py-2 px-3">Provider</th>
-                <th class="text-left py-2 px-3">Model</th>
-                <th class="text-center py-2 px-3">Success%</th>
-                <th class="text-center py-2 px-3">Task</th>
-                <th class="text-center py-2 px-3">Relevance</th>
-                <th class="text-center py-2 px-3">Halluc.</th>
-                <th class="text-center py-2 px-3">Gate</th>
-                <th class="text-left py-2 px-3">Date</th>
-              </tr>
-            </thead>
-            <tbody id="all-runs-body"></tbody>
-          </table>
-        </div>
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><p class="text-xs text-gray-400">Task Success</p><p id="kpi-task" class="text-2xl font-bold text-emerald-400">--</p></div>
+      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><p class="text-xs text-gray-400">Relevance</p><p id="kpi-rel" class="text-2xl font-bold text-blue-400">--</p></div>
+      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><p class="text-xs text-gray-400">Hallucination</p><p id="kpi-hal" class="text-2xl font-bold text-red-400">--</p></div>
+      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><p class="text-xs text-gray-400">Gate Pass Rate</p><p id="kpi-gate" class="text-2xl font-bold text-brand-light">--</p></div>
+    </section>
+
+    <section class="grid xl:grid-cols-2 gap-4">
+      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><h3 class="text-sm font-semibold mb-3">Metrics Over Time</h3><canvas id="chart-trends" height="220"></canvas></div>
+      <div class="bg-surface-2 rounded-xl p-4 border border-surface-3"><h3 class="text-sm font-semibold mb-3">Side-by-Side Provider Comparison</h3><canvas id="chart-compare" height="220"></canvas></div>
+    </section>
+
+    <section class="bg-surface-2 rounded-xl p-4 border border-surface-3">
+      <h2 class="font-semibold mb-3">Historical Run Search</h2>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4 text-sm">
+        <select id="filter-provider" class="bg-surface-3 border border-surface-3 rounded px-3 py-2"><option value="">All Providers</option></select>
+        <select id="filter-model" class="bg-surface-3 border border-surface-3 rounded px-3 py-2"><option value="">All Models</option></select>
+        <select id="filter-dataset" class="bg-surface-3 border border-surface-3 rounded px-3 py-2"><option value="">All Dataset Versions</option></select>
+        <select id="filter-status" class="bg-surface-3 border border-surface-3 rounded px-3 py-2"><option value="">Pass / Fail</option><option value="true">PASS</option><option value="false">FAIL</option></select>
+        <select id="filter-commit" class="bg-surface-3 border border-surface-3 rounded px-3 py-2"><option value="">All Commits</option></select>
+      </div>
+      <button onclick="loadRuns()" class="mb-3 bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm">Apply Filters</button>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="text-gray-400 border-b border-surface-3"><th class="text-left py-2 px-2">Provider/Model</th><th class="text-left py-2 px-2">Dataset</th><th class="text-left py-2 px-2">Commit</th><th class="text-center py-2 px-2">Overall</th><th class="text-center py-2 px-2">Gate</th><th class="text-center py-2 px-2">Regression</th><th class="text-left py-2 px-2">Date</th></tr></thead>
+          <tbody id="runs-body"></tbody>
+        </table>
       </div>
     </section>
 
-    <!-- ═══ COMPARE TAB ═══ -->
-    <section id="page-compare" class="hidden">
-      <div class="grid md:grid-cols-2 gap-4">
-        <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
-          <h3 class="text-sm font-semibold text-gray-300 mb-3">Radar Comparison</h3>
-          <canvas id="chart-radar" height="300"></canvas>
-        </div>
-        <div class="bg-surface-2 rounded-xl p-5 border border-surface-3">
-          <h3 class="text-sm font-semibold text-gray-300 mb-3">Provider Cards</h3>
-          <div id="provider-cards" class="space-y-3"></div>
-        </div>
-      </div>
+    <section class="bg-surface-2 rounded-xl p-4 border border-surface-3">
+      <h2 class="font-semibold mb-3">Per-test Case Drill-down</h2>
+      <div id="drilldown" class="space-y-3"></div>
     </section>
-
   </main>
 
-  <footer class="text-center text-xs text-gray-500 py-4">
-    LLMQ &mdash; LLM Quality Gate &copy; 2026
-  </footer>
+<script>
+let trendsChart, compareChart;
+let poller;
 
-  <script>
-    // ── Tab navigation ───────────────────────────────────────
-    const tabs = ['overview', 'runs', 'compare'];
-    function showTab(name) {
-      tabs.forEach(t => {
-        document.getElementById('page-' + t).classList.toggle('hidden', t !== name);
-        document.getElementById('tab-' + t).classList.toggle('tab-active', t === name);
-      });
-      if (name === 'runs') loadAllRuns();
-      if (name === 'compare') loadComparison();
+function notify(message, level='info') {
+  const toast = document.getElementById('toast');
+  toast.className = `text-xs px-3 py-1 rounded border ${level==='pass' ? 'bg-emerald-900 text-emerald-200 border-emerald-700' : level==='fail' ? 'bg-red-900 text-red-200 border-red-700' : 'bg-surface-3 border-surface-3'}`;
+  toast.textContent = message;
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+async function loadSettings() {
+  const [providersRes, settingsRes] = await Promise.all([fetch('/api/v1/providers'), fetch('/api/v1/settings')]);
+  const providersData = await providersRes.json();
+  const settings = await settingsRes.json();
+
+  const providerNames = (providersData.providers || []).map(p => p.name);
+  const providerOptions = providerNames.map(p => `<option value="${p}">${p}</option>`).join('');
+  document.getElementById('generator-provider').innerHTML = providerOptions;
+  document.getElementById('judge-provider').innerHTML = providerOptions;
+
+  document.getElementById('generator-provider').value = settings.roles?.generator?.provider || providerNames[0] || '';
+  document.getElementById('judge-provider').value = settings.roles?.judge?.provider || providerNames[0] || '';
+  document.getElementById('generator-model').value = settings.roles?.generator?.model || '';
+  document.getElementById('judge-model').value = settings.roles?.judge?.model || '';
+  document.getElementById('th-task').value = settings.quality_gates?.task_success_threshold ?? 0.8;
+  document.getElementById('th-rel').value = settings.quality_gates?.relevance_threshold ?? 0.7;
+  document.getElementById('th-hal').value = settings.quality_gates?.hallucination_threshold ?? 0.1;
+  document.getElementById('th-cons').value = settings.quality_gates?.consistency_threshold ?? 0.8;
+}
+
+async function saveSettings() {
+  const payload = {
+    roles: {
+      generator: { provider: value('generator-provider'), model: value('generator-model') },
+      judge: { provider: value('judge-provider'), model: value('judge-model') },
+    },
+    quality_gates: {
+      task_success_threshold: num('th-task'),
+      relevance_threshold: num('th-rel'),
+      hallucination_threshold: num('th-hal'),
+      consistency_threshold: num('th-cons'),
+    },
+  };
+  await fetch('/api/v1/settings', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+  notify('Settings saved.');
+}
+
+async function startEvaluation() {
+  const payload = { provider: value('generator-provider'), model: value('generator-model') };
+  const res = await fetch('/api/v1/evaluate/start', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+  const data = await res.json();
+  if (data.job_id) notify(`Evaluation started: ${data.job_id.slice(0,8)}`);
+  await loadLiveJobs();
+}
+
+async function loadLiveJobs() {
+  const res = await fetch('/api/v1/evaluate/active');
+  const data = await res.json();
+  const jobs = data.jobs || [];
+  const div = document.getElementById('live-jobs');
+  if (!jobs.length) {
+    div.innerHTML = '<p class="text-gray-400">No active runs.</p>';
+    return;
+  }
+  div.innerHTML = jobs.map(j => {
+    const pct = j.total ? Math.round((j.progress / j.total) * 100) : 0;
+    return `<div class="bg-surface-3 rounded p-3"><p class="font-medium">${j.provider}/${j.model || '-'}</p><p class="text-xs text-gray-400 mb-2">${j.job_id.slice(0,8)} • ${j.progress}/${j.total}</p><div class="h-2 bg-surface-2 rounded overflow-hidden"><div class="h-full bg-brand" style="width:${pct}%"></div></div></div>`;
+  }).join('');
+}
+
+async function loadOverview() {
+  const res = await fetch('/api/overview');
+  const data = await res.json();
+  text('kpi-task', pct(data.avg_task_success));
+  text('kpi-rel', pct(data.avg_relevance));
+  text('kpi-hal', pct(data.avg_hallucination));
+  text('kpi-gate', pct(data.quality_gate_pass_rate, 0));
+  renderCharts(data.recent_runs || []);
+}
+
+function renderCharts(runs) {
+  const labels = runs.map((_, i) => `Run ${i + 1}`).reverse();
+  const overall = runs.map(r => (r.overall_score || 0) * 100).reverse();
+  const task = runs.map(r => (r.task_success_score || 0) * 100).reverse();
+  if (trendsChart) trendsChart.destroy();
+  trendsChart = new Chart(document.getElementById('chart-trends'), {
+    type: 'line',
+    data: { labels, datasets: [
+      { label: 'Overall', data: overall, borderColor: '#818cf8', tension: .3 },
+      { label: 'Task', data: task, borderColor: '#34d399', tension: .3 },
+    ]},
+    options: chartOpts()
+  });
+
+  const grouped = {};
+  runs.forEach(r => {
+    const key = `${r.provider_name}/${r.model_name}`;
+    grouped[key] = grouped[key] || [];
+    grouped[key].push(r.overall_score || 0);
+  });
+  const compareLabels = Object.keys(grouped);
+  const compareData = compareLabels.map(k => grouped[k].reduce((a,b)=>a+b,0)/grouped[k].length*100);
+  if (compareChart) compareChart.destroy();
+  compareChart = new Chart(document.getElementById('chart-compare'), {
+    type: 'bar',
+    data: { labels: compareLabels, datasets: [{label:'Avg Overall', data: compareData, backgroundColor:'#60a5fa'}]},
+    options: chartOpts()
+  });
+}
+
+async function loadFilters() {
+  const [v1Res, legacyRes] = await Promise.all([fetch('/api/v1/runs/filters'), fetch('/api/run-filters')]);
+  const data = v1Res.ok ? await v1Res.json() : await legacyRes.json();
+  hydrateSelect('filter-provider', data.providers || []);
+  hydrateSelect('filter-model', data.models || []);
+  hydrateSelect('filter-dataset', data.dataset_versions || []);
+  hydrateSelect('filter-commit', data.commit_hashes || []);
+}
+
+async function loadRuns() {
+  const params = new URLSearchParams({ limit: '80' });
+  if (value('filter-provider')) params.set('provider', value('filter-provider'));
+  if (value('filter-model')) params.set('model', value('filter-model'));
+  if (value('filter-dataset')) params.set('dataset_version', value('filter-dataset'));
+  if (value('filter-status')) params.set('quality_gate_passed', value('filter-status'));
+  if (value('filter-commit')) params.set('commit_hash', value('filter-commit'));
+
+  const res = await fetch(`/api/v1/runs?${params.toString()}`);
+  const data = await res.json();
+  const runs = data.runs || [];
+  const tbody = document.getElementById('runs-body');
+  tbody.innerHTML = runs.map((r, idx) => {
+    const prev = runs.slice(idx + 1).find(x => x.provider_name === r.provider_name && x.model_name === r.model_name);
+    const delta = prev ? ((r.overall_score || 0) - (prev.overall_score || 0)) : null;
+    const regression = delta !== null && delta < -0.03;
+    return `<tr class="border-b border-surface-3 hover:bg-surface-3/50 cursor-pointer" onclick="loadRunDetails('${r.id}')">
+      <td class="py-2 px-2">${r.provider_name}/${r.model_name}</td>
+      <td class="py-2 px-2 text-gray-400">${r.dataset_version || '-'}</td>
+      <td class="py-2 px-2 font-mono text-xs text-gray-400">${(r.commit_hash || '-').slice(0,8)}</td>
+      <td class="py-2 px-2 text-center">${pct(r.overall_score)}</td>
+      <td class="py-2 px-2 text-center"><span class="px-2 py-0.5 rounded text-xs ${r.quality_gate_passed ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'}">${r.quality_gate_passed ? 'PASS' : 'FAIL'}</span></td>
+      <td class="py-2 px-2 text-center">${delta === null ? '-' : `<span class="${regression ? 'text-red-400' : 'text-emerald-400'}">${(delta * 100).toFixed(1)}%</span>`}${regression ? ' ⚠️' : ''}</td>
+      <td class="py-2 px-2 text-xs text-gray-400">${new Date(r.created_at).toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  const latest = runs[0];
+  if (latest?.quality_gate_passed === true) notify(`Run ${latest.id.slice(0,8)} passed quality gate`, 'pass');
+  if (latest?.quality_gate_passed === false) notify(`Run ${latest.id.slice(0,8)} failed quality gate`, 'fail');
+}
+
+async function loadRunDetails(runId) {
+  const res = await fetch(`/api/runs/${runId}`);
+  const data = await res.json();
+  const rows = (data.test_cases || []).slice(0, 12);
+  const container = document.getElementById('drilldown');
+  container.innerHTML = rows.map((tc, idx) => `
+    <details class="bg-surface-3 rounded p-3" ${idx === 0 ? 'open' : ''}>
+      <summary class="cursor-pointer text-sm"><span class="font-mono text-xs mr-2">${tc.test_case_id}</span> ${tc.success ? '✅' : '❌'} ${tc.task_type || ''}</summary>
+      <div class="mt-2 text-xs text-gray-300 space-y-1">
+        <p><span class="text-gray-400">Prompt:</span> ${escapeHtml(tc.input_prompt || '')}</p>
+        <p><span class="text-gray-400">Output:</span> ${escapeHtml(tc.generated_output || '')}</p>
+        <p><span class="text-gray-400">Task/Relevance/Hallucination:</span> ${pct(tc.task_success_score)} / ${pct(tc.relevance_score)} / ${pct(tc.hallucination_score)}</p>
+      </div>
+    </details>
+  `).join('') || '<p class="text-gray-400">No test case details available.</p>';
+}
+
+function chartOpts() {
+  return {
+    responsive: true,
+    plugins: { legend: { labels: { color: '#94a3b8' } } },
+    scales: {
+      x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+      y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' }, min: 0, max: 100 },
     }
+  };
+}
 
-    // ── Chart instances ──────────────────────────────────────
-    let trendsChart, providersChart, radarChart;
+function hydrateSelect(id, values) {
+  const el = document.getElementById(id);
+  const first = el.querySelector('option').outerHTML;
+  el.innerHTML = first + values.map(v => `<option value="${v}">${v}</option>`).join('');
+}
+function value(id) { return document.getElementById(id).value; }
+function num(id) { return Number(document.getElementById(id).value); }
+function text(id, v) { document.getElementById(id).textContent = v; }
+function pct(v, d=1) { return `${((v || 0) * 100).toFixed(d)}%`; }
+function escapeHtml(input) { return String(input).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-    const chartColors = {
-      emerald: 'rgba(52, 211, 153, 0.8)',
-      blue:    'rgba(96, 165, 250, 0.8)',
-      red:     'rgba(248, 113, 113, 0.8)',
-      purple:  'rgba(129, 140, 248, 0.8)',
-    };
-
-    // ── Load overview ────────────────────────────────────────
-    async function loadOverview() {
-      try {
-        const res = await fetch('/api/overview');
-        const data = await res.json();
-
-        document.getElementById('kpi-task-success').textContent =
-          (data.avg_task_success * 100).toFixed(1) + '%';
-        document.getElementById('kpi-relevance').textContent =
-          (data.avg_relevance * 100).toFixed(1) + '%';
-        document.getElementById('kpi-hallucination').textContent =
-          (data.avg_hallucination * 100).toFixed(1) + '%';
-        document.getElementById('kpi-gate').textContent =
-          (data.quality_gate_pass_rate * 100).toFixed(0) + '%';
-
-        renderRecentRuns(data.recent_runs || []);
-        renderTrendsChart(data.recent_runs || []);
-        renderProvidersChart(data.providers || []);
-      } catch (e) {
-        console.warn('No data yet:', e);
-      }
-    }
-
-    function renderRecentRuns(runs) {
-      const tbody = document.getElementById('recent-runs-body');
-      tbody.innerHTML = runs.map(r => `
-        <tr class="border-b border-surface-3 hover:bg-surface-3/50">
-          <td class="py-2 px-3">${r.provider_name}/${r.model_name}</td>
-          <td class="py-2 px-3 text-gray-400">${r.dataset_name || '-'}</td>
-          <td class="text-center py-2 px-3">${r.total_test_cases}</td>
-          <td class="text-center py-2 px-3 font-mono">${((r.overall_score || 0) * 100).toFixed(1)}%</td>
-          <td class="text-center py-2 px-3">
-            <span class="px-2 py-0.5 rounded text-xs font-medium
-              ${r.quality_gate_passed ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'}">
-              ${r.quality_gate_passed ? 'PASS' : 'FAIL'}
-            </span>
-          </td>
-          <td class="py-2 px-3 text-gray-400 text-xs">${new Date(r.created_at).toLocaleString()}</td>
-        </tr>
-      `).join('');
-    }
-
-    function renderTrendsChart(runs) {
-      const labels = runs.map((_, i) => `Run ${i + 1}`).reverse();
-      const scores = runs.map(r => (r.overall_score || 0) * 100).reverse();
-      const task   = runs.map(r => (r.task_success_score || 0) * 100).reverse();
-
-      if (trendsChart) trendsChart.destroy();
-      trendsChart = new Chart(document.getElementById('chart-trends'), {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            { label: 'Overall', data: scores, borderColor: chartColors.purple, tension: 0.3, fill: false },
-            { label: 'Task Success', data: task, borderColor: chartColors.emerald, tension: 0.3, fill: false },
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { labels: { color: '#94a3b8' } } },
-          scales: {
-            x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
-            y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' }, min: 0, max: 100 },
-          }
-        }
-      });
-    }
-
-    function renderProvidersChart(providers) {
-      const labels = providers.map(p => p.name);
-      const scores = providers.map(p => (p.avg_score || 0) * 100);
-      const colors = ['#6366f1','#34d399','#60a5fa','#f87171','#fbbf24','#a78bfa','#fb923c','#38bdf8'];
-
-      if (providersChart) providersChart.destroy();
-      providersChart = new Chart(document.getElementById('chart-providers'), {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Avg Score',
-            data: scores,
-            backgroundColor: colors.slice(0, labels.length),
-            borderRadius: 6,
-          }]
-        },
-        options: {
-          responsive: true,
-          indexAxis: 'y',
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' }, min: 0, max: 100 },
-            y: { ticks: { color: '#94a3b8' }, grid: { display: false } },
-          }
-        }
-      });
-    }
-
-    // ── All runs tab ─────────────────────────────────────────
-    async function loadAllRuns() {
-      try {
-        const res = await fetch('/api/runs?limit=100');
-        const data = await res.json();
-        const tbody = document.getElementById('all-runs-body');
-        tbody.innerHTML = (data.runs || []).map(r => `
-          <tr class="border-b border-surface-3 hover:bg-surface-3/50">
-            <td class="py-2 px-3 font-mono text-xs text-gray-400">${(r.id || '').slice(0, 8)}</td>
-            <td class="py-2 px-3">${r.provider_name}</td>
-            <td class="py-2 px-3">${r.model_name}</td>
-            <td class="text-center py-2 px-3">${((r.success_rate || 0) * 100).toFixed(0)}%</td>
-            <td class="text-center py-2 px-3">${((r.task_success_score || 0) * 100).toFixed(1)}%</td>
-            <td class="text-center py-2 px-3">${((r.relevance_score || 0) * 100).toFixed(1)}%</td>
-            <td class="text-center py-2 px-3">${((r.hallucination_score || 0) * 100).toFixed(1)}%</td>
-            <td class="text-center py-2 px-3">
-              <span class="px-2 py-0.5 rounded text-xs font-medium
-                ${r.quality_gate_passed ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'}">
-                ${r.quality_gate_passed ? 'PASS' : 'FAIL'}
-              </span>
-            </td>
-            <td class="py-2 px-3 text-xs text-gray-400">${new Date(r.created_at).toLocaleDateString()}</td>
-          </tr>
-        `).join('');
-      } catch (e) { console.warn(e); }
-    }
-
-    // ── Compare tab ──────────────────────────────────────────
-    async function loadComparison() {
-      try {
-        const res = await fetch('/api/runs?limit=50');
-        const data = await res.json();
-        const runs = data.runs || [];
-
-        // Group by provider/model
-        const groups = {};
-        runs.forEach(r => {
-          const key = `${r.provider_name}/${r.model_name}`;
-          if (!groups[key]) groups[key] = [];
-          groups[key].push(r);
-        });
-
-        const entries = Object.entries(groups).slice(0, 5);
-        const labels = ['Task Success', 'Relevance', '1-Hallucination', 'Gate Pass'];
-        const colors = ['#6366f1','#34d399','#60a5fa','#f87171','#fbbf24'];
-
-        const datasets = entries.map(([name, rs], i) => {
-          const avg = (field) => rs.reduce((s, r) => s + (r[field] || 0), 0) / rs.length;
-          return {
-            label: name,
-            data: [
-              avg('task_success_score') * 100,
-              avg('relevance_score') * 100,
-              (1 - avg('hallucination_score')) * 100,
-              rs.filter(r => r.quality_gate_passed).length / rs.length * 100,
-            ],
-            borderColor: colors[i],
-            backgroundColor: colors[i] + '33',
-          };
-        });
-
-        if (radarChart) radarChart.destroy();
-        radarChart = new Chart(document.getElementById('chart-radar'), {
-          type: 'radar',
-          data: { labels, datasets },
-          options: {
-            responsive: true,
-            plugins: { legend: { labels: { color: '#94a3b8' } } },
-            scales: {
-              r: {
-                ticks: { color: '#64748b', backdropColor: 'transparent' },
-                grid: { color: '#334155' },
-                pointLabels: { color: '#94a3b8' },
-                min: 0, max: 100,
-              }
-            }
-          }
-        });
-
-        // Provider cards
-        const cardsDiv = document.getElementById('provider-cards');
-        cardsDiv.innerHTML = entries.map(([name, rs]) => {
-          const avg = (field) => (rs.reduce((s, r) => s + (r[field] || 0), 0) / rs.length * 100).toFixed(1);
-          return `
-            <div class="bg-surface-3 rounded-lg p-4">
-              <p class="font-semibold text-white">${name}</p>
-              <div class="grid grid-cols-3 gap-2 mt-2 text-xs">
-                <div><span class="text-gray-400">Runs:</span> ${rs.length}</div>
-                <div><span class="text-gray-400">Score:</span> ${avg('overall_score')}%</div>
-                <div><span class="text-gray-400">Task:</span> ${avg('task_success_score')}%</div>
-              </div>
-            </div>
-          `;
-        }).join('');
-      } catch (e) { console.warn(e); }
-    }
-
-    // ── Init ─────────────────────────────────────────────────
-    loadOverview();
-  </script>
+async function boot() {
+  await Promise.all([loadSettings(), loadOverview(), loadFilters(), loadRuns(), loadLiveJobs()]);
+  poller = setInterval(async () => {
+    await loadLiveJobs();
+    await loadOverview();
+    await loadRuns();
+  }, 8000);
+}
+boot();
+</script>
 </body>
 </html>

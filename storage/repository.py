@@ -53,6 +53,9 @@ class EvaluationRepository:
         self,
         provider: Optional[str] = None,
         model: Optional[str] = None,
+        dataset_version: Optional[str] = None,
+        commit_hash: Optional[str] = None,
+        quality_gate_passed: Optional[bool] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
@@ -64,9 +67,40 @@ class EvaluationRepository:
         if model:
             query += " AND model_name = ?"
             params.append(model)
+        if dataset_version:
+            query += " AND dataset_version = ?"
+            params.append(dataset_version)
+        if commit_hash:
+            query += " AND commit_hash = ?"
+            params.append(commit_hash)
+        if quality_gate_passed is not None:
+            query += " AND quality_gate_passed = ?"
+            params.append(quality_gate_passed)
         query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
         return self.db.fetchall(query, params)
+
+    def list_run_filters(self) -> Dict[str, List[Any]]:
+        """Get distinct values for dashboard filters."""
+        providers = self.db.fetchall(
+            "SELECT DISTINCT provider_name FROM evaluation_runs ORDER BY provider_name"
+        )
+        models = self.db.fetchall(
+            "SELECT DISTINCT model_name FROM evaluation_runs ORDER BY model_name"
+        )
+        dataset_versions = self.db.fetchall(
+            "SELECT DISTINCT dataset_version FROM evaluation_runs ORDER BY dataset_version"
+        )
+        commits = self.db.fetchall(
+            "SELECT DISTINCT commit_hash FROM evaluation_runs WHERE commit_hash IS NOT NULL ORDER BY created_at DESC LIMIT 100"
+        )
+
+        return {
+            "providers": [row["provider_name"] for row in providers if row.get("provider_name")],
+            "models": [row["model_name"] for row in models if row.get("model_name")],
+            "dataset_versions": [row["dataset_version"] for row in dataset_versions if row.get("dataset_version")],
+            "commit_hashes": [row["commit_hash"] for row in commits if row.get("commit_hash")],
+        }
 
     def get_run_history(self, provider: str, model: str, limit: int = 30) -> List[Dict[str, Any]]:
         """Get historical runs for trend analysis."""
