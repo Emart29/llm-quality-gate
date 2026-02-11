@@ -27,3 +27,17 @@ def test_evaluate_requires_provider_or_providers():
     response = client.post("/api/v1/evaluate", json={})
     assert response.status_code == 200
     assert "error" in response.json()
+
+
+def test_run_filters_endpoint_shape():
+    response = client.get("/api/v1/runs/filters")
+    assert response.status_code == 200
+    data = response.json()
+    assert "providers" in data
+    assert "models" in data
+
+
+def test_evaluate_active_endpoint_shape():
+    response = client.get("/api/v1/evaluate/active")
+    assert response.status_code == 200
+    assert "jobs" in response.json()

@@ -63,6 +63,34 @@ async def evaluate(payload: EvaluateRequest) -> Dict[str, Any]:
     return {"error": "Either provider or providers must be supplied."}
 
 
+@router.post("/evaluate/start")
+async def start_evaluate(payload: EvaluateRequest) -> Dict[str, Any]:
+    if not payload.provider:
+        return {"error": "provider is required for async jobs"}
+    job_id = await service.start_evaluation_job(
+        provider=payload.provider,
+        model=payload.model,
+        dataset_path=payload.dataset,
+        config_path=payload.config,
+        workers=payload.workers,
+        timeout=payload.timeout,
+        no_judge=payload.no_judge,
+        no_db=payload.no_db,
+        non_deterministic=payload.non_deterministic,
+    )
+    return {"job_id": job_id, "status": "running"}
+
+
+@router.get("/evaluate/status/{job_id}")
+async def evaluate_status(job_id: str) -> Dict[str, Any]:
+    return service.get_job_status(job_id)
+
+
+@router.get("/evaluate/active")
+async def evaluate_active() -> Dict[str, Any]:
+    return {"jobs": service.get_active_jobs()}
+
+
 @router.get("/providers")
 async def list_providers(config: str = "config.yaml") -> Dict[str, Any]:
     return {"providers": service.list_providers(config)}
@@ -72,10 +100,26 @@ async def list_providers(config: str = "config.yaml") -> Dict[str, Any]:
 async def list_runs(
     provider: Optional[str] = None,
     model: Optional[str] = None,
+    dataset_version: Optional[str] = None,
+    commit_hash: Optional[str] = None,
+    quality_gate_passed: Optional[bool] = None,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ) -> Dict[str, Any]:
-    return service.get_runs(provider=provider, model=model, limit=limit, offset=offset)
+    return service.get_runs(
+        provider=provider,
+        model=model,
+        dataset_version=dataset_version,
+        commit_hash=commit_hash,
+        quality_gate_passed=quality_gate_passed,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/runs/filters")
+async def list_run_filters() -> Dict[str, Any]:
+    return service.get_run_filters()
 
 
 @router.get("/compare")

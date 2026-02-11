@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import subprocess
+import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 
@@ -23,6 +24,7 @@ class EvaluationService:
 
     def __init__(self, project_root: Optional[Path] = None):
         self.project_root = project_root or Path(__file__).resolve().parent.parent
+        self._jobs: Dict[str, Dict[str, Any]] = {}
 
     def _get_git_hash(self) -> str:
         try:
@@ -69,6 +71,7 @@ class EvaluationService:
         no_judge: bool = False,
         non_deterministic: bool = False,
         no_db: bool = False,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> Dict[str, Any]:
         config = LLMFactory.load_config(config_path)
         resolved_model = model or config.get("providers", {}).get(provider, {}).get("model", "")
@@ -94,7 +97,12 @@ class EvaluationService:
         )
         comprehensive = ComprehensiveEvaluationRunner(runner, metrics_engine)
 
-        result = await comprehensive.run(dataset, provider, resolved_model)
+        result = await comprehensive.run(
+            dataset,
+            provider,
+            resolved_model,
+            progress_callback=progress_callback,
+        )
         result_dict = result.to_dict()
 
         run_id = None
@@ -126,12 +134,95 @@ class EvaluationService:
         ]
         return await asyncio.gather(*tasks)
 
-    def get_runs(self, provider: Optional[str] = None, model: Optional[str] = None, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
+    async def start_evaluation_job(
+        self,
+        provider: str,
+        model: Optional[str] = None,
+        dataset_path: Optional[str] = None,
+        config_path: str = "config.yaml",
+        workers: int = 5,
+        timeout: int = 30,
+        no_judge: bool = False,
+        non_deterministic: bool = False,
+        no_db: bool = False,
+    ) -> str:
+        job_id = str(uuid.uuid4())
+        self._jobs[job_id] = {
+            "job_id": job_id,
+            "status": "running",
+            "provider": provider,
+            "model": model,
+            "progress": 0,
+            "total": 0,
+            "result": None,
+            "error": None,
+        }
+
+        def on_progress(completed: int, total: int) -> None:
+            self._jobs[job_id]["progress"] = completed
+            self._jobs[job_id]["total"] = total
+
+        async def _run() -> None:
+            try:
+                result = await self.evaluate_provider(
+                    provider=provider,
+                    model=model,
+                    dataset_path=dataset_path,
+                    config_path=config_path,
+                    workers=workers,
+                    timeout=timeout,
+                    no_judge=no_judge,
+                    non_deterministic=non_deterministic,
+                    no_db=no_db,
+                    progress_callback=on_progress,
+                )
+                self._jobs[job_id]["status"] = "completed"
+                self._jobs[job_id]["result"] = result
+            except Exception as exc:
+                self._jobs[job_id]["status"] = "failed"
+                self._jobs[job_id]["error"] = str(exc)
+
+        asyncio.create_task(_run())
+        return job_id
+
+    def get_job_status(self, job_id: str) -> Dict[str, Any]:
+        return self._jobs.get(job_id, {"job_id": job_id, "status": "not_found"})
+
+    def get_active_jobs(self) -> List[Dict[str, Any]]:
+        return [
+            job for job in self._jobs.values() if job.get("status") == "running"
+        ]
+
+    def get_runs(
+        self,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
+        dataset_version: Optional[str] = None,
+        commit_hash: Optional[str] = None,
+        quality_gate_passed: Optional[bool] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
         db = Database()
         repo = EvaluationRepository(db)
-        runs = repo.list_runs(provider=provider, model=model, limit=limit, offset=offset)
+        runs = repo.list_runs(
+            provider=provider,
+            model=model,
+            dataset_version=dataset_version,
+            commit_hash=commit_hash,
+            quality_gate_passed=quality_gate_passed,
+            limit=limit,
+            offset=offset,
+        )
         db.close()
         return {"runs": runs, "total": len(runs)}
+
+    def get_run_filters(self) -> Dict[str, Any]:
+        db = Database()
+        repo = EvaluationRepository(db)
+        filters = repo.list_run_filters()
+        db.close()
+        return filters
 
     def compare_metrics(self, limit: int = 100) -> Dict[str, Any]:
         db = Database()
