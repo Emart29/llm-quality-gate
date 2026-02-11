@@ -14,10 +14,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from storage.database import Database
 from storage.repository import EvaluationRepository
+from dashboard.api import router as api_v1_router
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="LLM Quality Gate Dashboard", version="1.0.0")
+
+app.include_router(api_v1_router)
 
 app.add_middleware(
     CORSMiddleware,
