@@ -54,24 +54,23 @@ LLMQ is a **developer tool** and **CI quality gate** that automatically tests, m
 
 ## Architecture
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   GitHub Actions   │    │   FastAPI Backend    │    │   LLM Providers     │
-│   Quality Gate      │────│   /api/v1/*          │────│   8 Providers       │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │
-                       ┌──────────────────┐
-                       │   DuckDB Storage     │
-                       │   Historical Data    │
-                       └──────────────────┘
-                                │
-                       ┌──────────────────┐
-                       │   Web Dashboard      │
-                       │   Optional UI        │
-                       └──────────────────┘
-```
+![LLMQ architecture flow from prompt to dashboard](docs/architecture.svg)
 
-*[Architecture diagram placeholder - to be added]*
+Flow: **Prompt → Evaluation Runner → Provider Adapters → Metrics Engine → Quality Gates → Storage → Dashboard**
+
+## Dashboard Preview
+
+### Evaluation summary view
+
+![Evaluation summary dashboard mock](docs/images/evaluation-summary.svg)
+
+### Historical runs
+
+![Historical runs dashboard mock](docs/images/historical-runs.svg)
+
+### Model comparison
+
+![Model comparison dashboard mock](docs/images/model-comparison.svg)
 
 ## Quick Start
 

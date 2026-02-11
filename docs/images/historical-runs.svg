@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="800" viewBox="0 0 1400 800">
+  <rect width="1400" height="800" fill="#f5f7fa"/>
+  <text x="60" y="80" font-size="48" font-family="Arial" font-weight="700" fill="#1e293b">Historical Runs</text>
+  <text x="60" y="120" font-size="24" font-family="Arial" fill="#64748b">Trend of quality gate outcomes over time</text>
+  <rect x="60" y="170" width="1280" height="330" rx="18" fill="#fff" stroke="#e2e8f0"/>
+  <text x="90" y="220" font-size="32" fill="#1e293b" font-family="Arial" font-weight="700">Run Score Trend (last 10 runs)</text>
+  <line x1="110" y1="450" x2="1290" y2="450" stroke="#94a3b8" stroke-width="3"/>
+  <line x1="110" y1="270" x2="110" y2="450" stroke="#94a3b8" stroke-width="3"/>
+  <polyline fill="none" stroke="#2563eb" stroke-width="4" points="110,420 240,390 370,400 500,370 630,345 760,350 890,330 1020,310 1150,325 1290,300"/>
+  <circle cx="110" cy="420" r="6" fill="#2563eb"/><circle cx="240" cy="390" r="6" fill="#2563eb"/><circle cx="370" cy="400" r="6" fill="#2563eb"/><circle cx="500" cy="370" r="6" fill="#2563eb"/><circle cx="630" cy="345" r="6" fill="#2563eb"/><circle cx="760" cy="350" r="6" fill="#2563eb"/><circle cx="890" cy="330" r="6" fill="#2563eb"/><circle cx="1020" cy="310" r="6" fill="#2563eb"/><circle cx="1150" cy="325" r="6" fill="#2563eb"/><circle cx="1290" cy="300" r="6" fill="#2563eb"/>
+  <rect x="60" y="540" width="1280" height="200" rx="18" fill="#fff" stroke="#e2e8f0"/>
+  <text x="90" y="585" font-size="32" fill="#1e293b" font-family="Arial" font-weight="700">Recent Runs</text>
+  <text x="100" y="635" font-size="26" fill="#1e293b" font-family="Arial">run_1021</text><text x="360" y="635" font-size="26" fill="#64748b" font-family="Arial">openai:gpt-4o-mini</text><text x="820" y="635" font-size="26" fill="#16a34a" font-family="Arial">PASS</text><text x="1020" y="635" font-size="26" fill="#1e293b" font-family="Arial">0.87</text>
+  <text x="100" y="680" font-size="26" fill="#1e293b" font-family="Arial">run_1020</text><text x="360" y="680" font-size="26" fill="#64748b" font-family="Arial">groq:llama3-8b</text><text x="820" y="680" font-size="26" fill="#16a34a" font-family="Arial">PASS</text><text x="1020" y="680" font-size="26" fill="#1e293b" font-family="Arial">0.83</text>
+  <text x="100" y="725" font-size="26" fill="#1e293b" font-family="Arial">run_1019</text><text x="360" y="725" font-size="26" fill="#64748b" font-family="Arial">claude:haiku</text><text x="820" y="725" font-size="26" fill="#dc2626" font-family="Arial">FAIL</text><text x="1020" y="725" font-size="26" fill="#1e293b" font-family="Arial">0.72</text>
+</svg>

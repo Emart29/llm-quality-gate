@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="800" viewBox="0 0 1400 800">
+  <rect width="1400" height="800" fill="#f5f7fa"/>
+  <text x="60" y="80" font-size="48" font-family="Arial" font-weight="700" fill="#1e293b">Evaluation Summary</text>
+  <text x="60" y="120" font-size="24" font-family="Arial" fill="#64748b">Latest run quality gate status and metric breakdown</text>
+  <rect x="60" y="170" width="360" height="180" rx="18" fill="#fff" stroke="#e2e8f0"/>
+  <rect x="460" y="170" width="360" height="180" rx="18" fill="#fff" stroke="#e2e8f0"/>
+  <rect x="860" y="170" width="360" height="180" rx="18" fill="#fff" stroke="#e2e8f0"/>
+  <text x="90" y="220" font-size="22" fill="#64748b" font-family="Arial">Quality Gate</text>
+  <text x="90" y="280" font-size="42" fill="#16a34a" font-weight="700" font-family="Arial">PASS</text>
+  <text x="490" y="220" font-size="22" fill="#64748b" font-family="Arial">Overall Score</text>
+  <text x="490" y="280" font-size="42" fill="#2563eb" font-weight="700" font-family="Arial">0.87</text>
+  <text x="890" y="220" font-size="22" fill="#64748b" font-family="Arial">Provider</text>
+  <text x="890" y="280" font-size="36" fill="#1e293b" font-weight="700" font-family="Arial">groq / llama3-8b</text>
+  <rect x="60" y="390" width="1280" height="350" rx="18" fill="#fff" stroke="#e2e8f0"/>
+  <text x="90" y="440" font-size="32" fill="#1e293b" font-family="Arial" font-weight="700">Metric Breakdown</text>
+  <text x="100" y="500" font-size="26" fill="#1e293b" font-family="Arial">Task Success</text>
+  <rect x="420" y="478" width="760" height="26" rx="10" fill="#e2e8f0"/><rect x="420" y="478" width="692" height="26" rx="10" fill="#16a34a"/>
+  <text x="1210" y="500" font-size="26" fill="#64748b" font-family="Arial">0.91</text>
+  <text x="100" y="560" font-size="26" fill="#1e293b" font-family="Arial">Relevance</text>
+  <rect x="420" y="538" width="760" height="26" rx="10" fill="#e2e8f0"/><rect x="420" y="538" width="646" height="26" rx="10" fill="#2563eb"/>
+  <text x="1210" y="560" font-size="26" fill="#64748b" font-family="Arial">0.85</text>
+  <text x="100" y="620" font-size="26" fill="#1e293b" font-family="Arial">Hallucination</text>
+  <rect x="420" y="598" width="760" height="26" rx="10" fill="#e2e8f0"/><rect x="420" y="598" width="61" height="26" rx="10" fill="#f97316"/>
+  <text x="1210" y="620" font-size="26" fill="#64748b" font-family="Arial">0.08</text>
+  <text x="100" y="680" font-size="26" fill="#1e293b" font-family="Arial">Consistency</text>
+  <rect x="420" y="658" width="760" height="26" rx="10" fill="#e2e8f0"/><rect x="420" y="658" width="676" height="26" rx="10" fill="#16a34a"/>
+  <text x="1210" y="680" font-size="26" fill="#64748b" font-family="Arial">0.89</text>
+</svg>
