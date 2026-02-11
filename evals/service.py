@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import copy
+import json
+import logging
+import os
+import smtplib
 import subprocess
 import uuid
 from pathlib import Path
+from email.mime.text import MIMEText
 from typing import Any, Callable, Dict, List, Optional
 
 import yaml
@@ -17,6 +23,9 @@ from evals.runner import EvaluationRunner
 from llm.factory import BaseLLM, LLMFactory
 from storage.database import Database
 from storage.repository import EvaluationRepository
+from storage.models import BaselineMetric
+
+logger = logging.getLogger(__name__)
 
 
 class EvaluationService:
@@ -25,6 +34,7 @@ class EvaluationService:
     def __init__(self, project_root: Optional[Path] = None):
         self.project_root = project_root or Path(__file__).resolve().parent.parent
         self._jobs: Dict[str, Dict[str, Any]] = {}
+        self._alert_handlers = [self._send_slack_alert, self._send_webhook_alert, self._send_email_alert]
 
     def _get_git_hash(self) -> str:
         try:
@@ -59,6 +69,114 @@ class EvaluationService:
             }
             for name in sorted(providers.keys())
         ]
+
+    def _regression_delta(self, metric: str, baseline: Optional[float], current: Optional[float]) -> float:
+        if baseline is None or current is None:
+            return 0.0
+        if metric == "hallucination_score":
+            return baseline - current
+        return current - baseline
+
+    def _compare_against_baseline(
+        self,
+        repo: EvaluationRepository,
+        result_dict: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        provider = result_dict.get("provider_name")
+        model = result_dict.get("model_name")
+        dataset_version = result_dict.get("dataset_version")
+        baseline = repo.get_baseline(provider, model, dataset_version)
+        if not baseline:
+            return {"regression_detected": False, "reason": "no_baseline"}
+
+        tolerance = float(os.getenv("LLMQ_REGRESSION_TOLERANCE", "0.03"))
+        metric_keys = [
+            "overall_score",
+            "task_success_score",
+            "relevance_score",
+            "hallucination_score",
+            "consistency_score",
+        ]
+        deltas = {
+            key: self._regression_delta(key, baseline.get(key), result_dict.get(key))
+            for key in metric_keys
+        }
+        regressions = [
+            key for key, delta in deltas.items()
+            if key != "hallucination_score" and delta < -tolerance
+        ]
+        regressions += [
+            key for key, delta in deltas.items()
+            if key == "hallucination_score" and delta < -tolerance
+        ]
+
+        return {
+            "regression_detected": len(regressions) > 0,
+            "baseline_id": baseline.get("id"),
+            "baseline_commit_hash": baseline.get("commit_hash"),
+            "tolerance": tolerance,
+            "deltas": deltas,
+            "regressions": regressions,
+        }
+
+    def _send_slack_alert(self, payload: Dict[str, Any]) -> None:
+        webhook = os.getenv("SLACK_WEBHOOK_URL")
+        if not webhook:
+            return
+        import httpx
+        httpx.post(webhook, json={"text": payload.get("message", "LLMQ alert")}, timeout=10)
+
+    def _send_webhook_alert(self, payload: Dict[str, Any]) -> None:
+        webhook = os.getenv("LLMQ_ALERT_WEBHOOK_URL")
+        if not webhook:
+            return
+        import httpx
+        httpx.post(webhook, json=payload, timeout=10)
+
+    def _send_email_alert(self, payload: Dict[str, Any]) -> None:
+        to_addr = os.getenv("ALERT_EMAIL_TO")
+        smtp_host = os.getenv("ALERT_SMTP_HOST")
+        smtp_port = int(os.getenv("ALERT_SMTP_PORT", "587"))
+        smtp_user = os.getenv("ALERT_SMTP_USER")
+        smtp_password = os.getenv("ALERT_SMTP_PASSWORD")
+        if not to_addr or not smtp_host:
+            return
+
+        msg = MIMEText(json.dumps(payload, indent=2), "plain")
+        msg["Subject"] = f"LLMQ Alert: {payload.get('status', 'UNKNOWN')}"
+        msg["From"] = smtp_user or "llmq@example.local"
+        msg["To"] = to_addr
+
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+            server.starttls()
+            if smtp_user and smtp_password:
+                server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+
+    def _dispatch_alert(self, result: Dict[str, Any]) -> None:
+        gate = result.get("quality_gate", {})
+        regression = result.get("regression", {})
+        should_alert = not gate.get("passed", True) or regression.get("regression_detected", False)
+        if not should_alert:
+            return
+        payload = {
+            "status": "FAILED" if not gate.get("passed", True) else "REGRESSION",
+            "provider": result.get("provider_name"),
+            "model": result.get("model_name"),
+            "commit_hash": self._get_git_hash(),
+            "failed_metrics": gate.get("failed_metrics", []),
+            "regressions": regression.get("regressions", []),
+            "message": (
+                f"LLMQ alert for {result.get('provider_name')}/{result.get('model_name')} "
+                f"on {self._get_git_hash()}: gate_passed={gate.get('passed')} "
+                f"regression_detected={regression.get('regression_detected')}"
+            ),
+        }
+        for handler in self._alert_handlers:
+            try:
+                handler(payload)
+            except Exception as exc:
+                logger.warning("Alert handler failed: %s", exc)
 
     async def evaluate_provider(
         self,
@@ -104,17 +222,32 @@ class EvaluationService:
             progress_callback=progress_callback,
         )
         result_dict = result.to_dict()
+        gate = result_dict.get("quality_gate", {})
+        agg = result_dict.get("aggregated_metrics", {})
+        result_dict["overall_score"] = gate.get("overall_score")
+        result_dict["task_success_score"] = agg.get("task_success", {}).get("score")
+        result_dict["relevance_score"] = agg.get("relevance", {}).get("score")
+        result_dict["hallucination_score"] = agg.get("hallucination", {}).get("score")
+        result_dict["consistency_score"] = agg.get("consistency", {}).get("score")
 
         run_id = None
+        regression = {"regression_detected": False, "reason": "db_disabled"}
         if not no_db:
             db = Database()
             repo = EvaluationRepository(db)
+            regression = self._compare_against_baseline(repo, result_dict)
+            result_dict["regression"] = regression
             run_id = repo.save_comprehensive_result(
                 result_dict,
                 commit_hash=self._get_git_hash(),
                 branch=self._get_git_branch(),
+                regression=regression,
             )
             db.close()
+        else:
+            result_dict["regression"] = regression
+
+        self._dispatch_alert(result_dict)
 
         return {
             "run_id": run_id,
@@ -122,6 +255,84 @@ class EvaluationService:
             "model": resolved_model,
             "result": result_dict,
         }
+
+    async def run_canary_evaluation(
+        self,
+        provider: str,
+        model: Optional[str] = None,
+        dataset_path: Optional[str] = None,
+        config_path: str = "config.yaml",
+        canary_ratio: float = 0.25,
+        auto_promote: bool = True,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        source_dataset = dataset_path or str(self.project_root / "evals" / "dataset.json")
+        full_dataset = DatasetLoader.load_from_file(source_dataset)
+        canary_size = max(1, int(len(full_dataset.test_cases) * canary_ratio))
+        canary_dataset = copy.deepcopy(full_dataset)
+        canary_dataset.test_cases = full_dataset.test_cases[:canary_size]
+
+        config = LLMFactory.load_config(config_path)
+        resolved_model = model or config.get("providers", {}).get(provider, {}).get("model", "")
+        factory = LLMFactory(config_path)
+        runner = EvaluationRunner(
+            llm_factory=factory,
+            max_workers=kwargs.get("workers", 5),
+            timeout_seconds=kwargs.get("timeout", 30),
+            deterministic=not kwargs.get("non_deterministic", False),
+        )
+        metrics_engine = MetricsEngine(thresholds=config.get("quality_gates", {}))
+        comprehensive = ComprehensiveEvaluationRunner(runner, metrics_engine)
+        canary_result = (await comprehensive.run(canary_dataset, provider, resolved_model)).to_dict()
+
+        response = {
+            "provider": provider,
+            "model": resolved_model,
+            "canary": {
+                "size": canary_size,
+                "total": len(full_dataset.test_cases),
+                "ratio": canary_ratio,
+                "result": canary_result,
+            },
+            "promoted": False,
+            "full_result": None,
+        }
+
+        if auto_promote and canary_result.get("quality_gate", {}).get("passed"):
+            response["promoted"] = True
+            response["full_result"] = await self.evaluate_provider(
+                provider=provider,
+                model=model,
+                dataset_path=dataset_path,
+                config_path=config_path,
+                **kwargs,
+            )
+        return response
+
+    def mark_baseline(self, run_id: str) -> Dict[str, Any]:
+        db = Database()
+        repo = EvaluationRepository(db)
+        run = repo.get_run(run_id)
+        if not run:
+            db.close()
+            return {"error": "run_not_found", "run_id": run_id}
+
+        baseline = BaselineMetric(
+            id=str(uuid.uuid4()),
+            provider_name=run["provider_name"],
+            model_name=run["model_name"],
+            dataset_version=run["dataset_version"],
+            overall_score=run.get("overall_score"),
+            task_success_score=run.get("task_success_score"),
+            relevance_score=run.get("relevance_score"),
+            hallucination_score=run.get("hallucination_score"),
+            consistency_score=run.get("consistency_score"),
+            source_run_id=run_id,
+            commit_hash=run.get("commit_hash"),
+        )
+        baseline_id = repo.upsert_baseline(baseline)
+        db.close()
+        return {"baseline_id": baseline_id, "run_id": run_id}
 
     async def evaluate_many(self, providers: List[Dict[str, Any]], **kwargs) -> List[Dict[str, Any]]:
         tasks = [

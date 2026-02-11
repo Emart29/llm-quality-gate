@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 from storage.database import Database
-from storage.models import EvaluationRun, TestCaseRecord, QualityGateRecord
+from storage.models import EvaluationRun, TestCaseRecord, QualityGateRecord, BaselineMetric
 from storage.repository import EvaluationRepository
 
 
@@ -32,6 +32,7 @@ class TestDatabase:
         assert "test_case_results" in table_names
         assert "quality_gate_history" in table_names
         assert "provider_comparisons" in table_names
+        assert "baseline_metrics" in table_names
 
 
 class TestEvaluationRepository:
@@ -132,3 +133,18 @@ class TestEvaluationRepository:
         history = repo.get_quality_gate_history()
         assert len(history) >= 1
         assert history[0]["passed"] is True
+
+    def test_upsert_and_get_baseline(self, repo):
+        baseline = BaselineMetric(
+            id=str(uuid.uuid4()),
+            provider_name="groq",
+            model_name="llama3-8b",
+            dataset_version="1.0",
+            overall_score=0.81,
+            task_success_score=0.82,
+        )
+        baseline_id = repo.upsert_baseline(baseline)
+        fetched = repo.get_baseline("groq", "llama3-8b", "1.0")
+        assert fetched is not None
+        assert fetched["id"] == baseline_id
+        assert fetched["overall_score"] == 0.81
