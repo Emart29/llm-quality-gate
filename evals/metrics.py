@@ -2,6 +2,7 @@
 
 import logging
 import re
+import os
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
@@ -12,17 +13,54 @@ logger = logging.getLogger(__name__)
 # ── Lightweight embedding helpers (lazy-loaded) ───────────────────────────
 
 _embedding_model = None
+_is_ci_mode = None
+
+
+def _is_ci_environment() -> bool:
+    """Check if running in CI environment."""
+    global _is_ci_mode
+    if _is_ci_mode is None:
+        _is_ci_mode = os.environ.get('CI', '').lower() in ('true', '1', 'yes')
+    return _is_ci_mode
+
+
+class MockEmbeddingModel:
+    """Mock embedding model for CI environments to avoid network calls and model downloads."""
+    
+    def encode(self, texts: List[str]) -> List[List[float]]:
+        """Return deterministic mock embeddings based on text content."""
+        embeddings = []
+        for text in texts:
+            # Create a simple deterministic embedding based on text characteristics
+            text_lower = text.lower()
+            embedding = [
+                len(text) / 100.0,  # Length feature
+                text_lower.count('the') / 10.0,  # Common word feature
+                text_lower.count('a') / 10.0,  # Vowel feature
+                len(set(text_lower.split())) / 50.0,  # Unique words feature
+                1.0 if any(word in text_lower for word in ['good', 'great', 'excellent']) else 0.0,  # Positive sentiment
+                1.0 if any(word in text_lower for word in ['bad', 'poor', 'terrible']) else 0.0,  # Negative sentiment
+            ]
+            # Pad or truncate to consistent size
+            while len(embedding) < 10:
+                embedding.append(0.0)
+            embeddings.append(embedding[:10])
+        return embeddings
 
 
 def _get_embedding_model():
-    """Lazy-load the sentence-transformers model."""
+    """Lazy-load the sentence-transformers model or return mock in CI."""
     global _embedding_model
     if _embedding_model is None:
-        try:
-            from sentence_transformers import SentenceTransformer
-            _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-        except ImportError:
-            logger.warning("sentence-transformers not installed; embedding metrics will fall back to token overlap")
+        if _is_ci_environment():
+            logger.info("CI environment detected, using mock embedding model for fast tests")
+            _embedding_model = MockEmbeddingModel()
+        else:
+            try:
+                from sentence_transformers import SentenceTransformer
+                _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+            except ImportError:
+                logger.warning("sentence-transformers not installed; embedding metrics will fall back to token overlap")
     return _embedding_model
 
 
