@@ -1,9 +1,14 @@
 """Factory for creating LLM provider instances."""
 
-from typing import Dict, Any, List, Optional
-import yaml
 import os
+import logging
+from typing import Any, Dict, List, Optional
+
+import yaml
 from dotenv import load_dotenv
+
+from core.config import resolve_config_path
+from core.errors import ConfigError
 from .base import LLMProvider, LLMRequest, LLMResponse
 from .groq import GroqProvider
 from .openai import OpenAIProvider
@@ -13,7 +18,6 @@ from .huggingface import HuggingFaceProvider
 from .openrouter import OpenRouterProvider
 from .ollama import OllamaProvider
 from .localai import LocalAIProvider
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +72,7 @@ class LLMFactory:
     """Factory for creating LLM provider instances.
 
     Supports both instance-based and classmethod-based usage:
-        # Instance-based (uses config.yaml)
+        # Instance-based (uses llmq.yaml)
         factory = LLMFactory()
         provider = factory.create_provider("groq")
 
@@ -93,27 +97,28 @@ class LLMFactory:
         "localai": LocalAIProvider,
     }
 
-    def __init__(self, config_path: str = "config.yaml"):
+    def __init__(self, config_path: str = "llmq.yaml"):
         """Initialize the factory with configuration."""
         # Load environment variables from .env file
         load_dotenv()
         self.config = self.load_config(config_path)
 
     @classmethod
-    def load_config(cls, config_path: str = "config.yaml") -> Dict[str, Any]:
+    def load_config(cls, config_path: str = "llmq.yaml") -> Dict[str, Any]:
         """Load configuration from YAML file."""
         # Load environment variables from .env file
         load_dotenv()
-        
+
         try:
-            with open(config_path, 'r') as f:
+            resolved_path = resolve_config_path(config_path)
+            with open(resolved_path, "r", encoding="utf-8") as f:
                 return yaml.safe_load(f)
-        except FileNotFoundError:
-            logger.error(f"Configuration file not found: {config_path}")
-            raise
+        except FileNotFoundError as exc:
+            logger.error("Configuration file not found: %s", config_path)
+            raise ConfigError("No llmq.yaml found. Run `llmq init`.") from exc
         except yaml.YAMLError as e:
             logger.error(f"Error parsing configuration file: {e}")
-            raise
+            raise ConfigError(f"Invalid YAML in config file: {e}") from e
 
     @classmethod
     def _resolve_config(cls, self_or_config=None, config: Optional[Dict] = None) -> Dict[str, Any]:

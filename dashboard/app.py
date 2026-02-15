@@ -18,7 +18,7 @@ from dashboard.api import router as api_v1_router
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="LLM Quality Gate Dashboard", version="1.0.0")
+app = FastAPI(title="LLM Quality Gate Dashboard", version="0.1.1")
 
 app.include_router(api_v1_router)
 

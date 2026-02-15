@@ -143,6 +143,17 @@ The interactive web dashboard provides historical performance tracking, provider
 
 [🎬 Watch the full CLI + Dashboard walkthrough →](https://llm-quality-gate.vercel.app)
 
+
+## v0.1.1 Highlights
+
+- Unified configuration filename: `llmq.yaml` everywhere.
+- Config auto-discovery from current directory upward (similar to `pyproject.toml` lookup).
+- `llmq eval` now supports standalone mode by falling back to local engine if dashboard API is unavailable.
+- CLI exit codes are standardized:
+  - `0`: quality gate passed
+  - `1`: quality gate failed or runtime error
+  - `2`: configuration error (e.g., missing `llmq.yaml`)
+
 ## Configuration
 
 **`llmq.yaml`** — project-level settings:
@@ -193,7 +204,7 @@ llmq doctor                                  # Check system health
 
 # Evaluation
 llmq eval --provider groq                    # Run evaluation
-llmq eval --provider openai --fail-on-gate   # CI mode (exit 1 on failure)
+llmq eval --provider openai --fail-on-gate   # CI mode (exit 1 on gate failure)
 llmq compare                                 # Compare providers side-by-side
 
 # Management
@@ -202,6 +213,14 @@ llmq runs --limit 10                         # View recent runs
 llmq dashboard                               # Start web dashboard
 llmq settings --set '{"quality_gates": {"task_success_threshold": 0.9}}'
 ```
+
+
+## Migration Guide (<=0.1.0 -> 0.1.1)
+
+1. Rename existing `config.yaml` to `llmq.yaml`.
+2. Update scripts to use `--config-path` (or continue using `--config`) when you need an explicit location.
+3. Remove hard dependency on `llmq dashboard` for CLI evaluations; `llmq eval` now runs standalone if API is unavailable.
+4. If you parse CLI statuses in CI, adopt the documented exit codes (`0/1/2`).
 
 ## API
 

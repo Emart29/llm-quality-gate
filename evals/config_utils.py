@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 
 
-def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
+def load_config(config_path: str = "llmq.yaml") -> Dict[str, Any]:
     """Load configuration from YAML file."""
     try:
         with open(config_path, 'r') as f:
@@ -15,7 +15,7 @@ def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
         return {}
 
 
-def get_evaluation_config(config_path: str = "config.yaml") -> Dict[str, Any]:
+def get_evaluation_config(config_path: str = "llmq.yaml") -> Dict[str, Any]:
     """Get evaluation configuration with CI mode optimizations."""
     config = load_config(config_path)
     eval_config = config.get("evaluation", {})

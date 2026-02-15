@@ -16,6 +16,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 
+from core.config import resolve_config_path
 from evals.comprehensive_runner import ComprehensiveEvaluationRunner
 from evals.dataset import DatasetLoader
 from evals.metrics import MetricsEngine
@@ -56,7 +57,7 @@ class EvaluationService:
         except Exception:
             return ""
 
-    def list_providers(self, config_path: str = "config.yaml") -> List[Dict[str, Any]]:
+    def list_providers(self, config_path: str = "llmq.yaml") -> List[Dict[str, Any]]:
         config = LLMFactory.load_config(config_path)
         availability = LLMFactory.list_available_providers(config=config)
         providers = config.get("providers", {})
@@ -184,7 +185,7 @@ class EvaluationService:
         provider: str,
         model: Optional[str] = None,
         dataset_path: Optional[str] = None,
-        config_path: str = "config.yaml",
+        config_path: str = "llmq.yaml",
         workers: int = 5,
         timeout: int = 30,
         no_judge: bool = False,
@@ -262,7 +263,7 @@ class EvaluationService:
         provider: str,
         model: Optional[str] = None,
         dataset_path: Optional[str] = None,
-        config_path: str = "config.yaml",
+        config_path: str = "llmq.yaml",
         canary_ratio: float = 0.25,
         auto_promote: bool = True,
         **kwargs,
@@ -351,7 +352,7 @@ class EvaluationService:
         provider: str,
         model: Optional[str] = None,
         dataset_path: Optional[str] = None,
-        config_path: str = "config.yaml",
+        config_path: str = "llmq.yaml",
         workers: int = 5,
         timeout: int = 30,
         no_judge: bool = False,
@@ -467,12 +468,13 @@ class EvaluationService:
         comparisons.sort(key=lambda item: item["overall_score"], reverse=True)
         return {"comparisons": comparisons}
 
-    def get_settings(self, config_path: str = "config.yaml") -> Dict[str, Any]:
+    def get_settings(self, config_path: str = "llmq.yaml") -> Dict[str, Any]:
         return LLMFactory.load_config(config_path)
 
-    def update_settings(self, payload: Dict[str, Any], config_path: str = "config.yaml") -> Dict[str, Any]:
-        config = LLMFactory.load_config(config_path)
+    def update_settings(self, payload: Dict[str, Any], config_path: str = "llmq.yaml") -> Dict[str, Any]:
+        resolved_path = resolve_config_path(config_path)
+        config = LLMFactory.load_config(str(resolved_path))
         config.update(payload)
-        with open(config_path, "w", encoding="utf-8") as fp:
+        with open(resolved_path, "w", encoding="utf-8") as fp:
             yaml.safe_dump(config, fp, sort_keys=False)
         return config
