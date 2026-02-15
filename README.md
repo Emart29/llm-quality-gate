@@ -1,68 +1,69 @@
-<p align="center">
-  <img src="assets/llmq-logo.png" alt="LLMQ Logo" width="120" />
-</p>
+# LLMQ Gate
+**Regression Testing & Quality Gates for LLM Applications**
 
-<h1 align="center">LLMQ</h1>
+LLMQ Gate is a pytest-like quality gate system for LLM-powered applications.
 
-<p align="center">
-  <strong>Regression Testing & Quality Gates for LLM Applications</strong>
-</p>
-
-<p align="center">
-  Open-source framework to catch silent LLM failures before they reach production.
-</p>
-
-<p align="center">
-  <a href="https://github.com/Emart29/llm-quality-gate/actions"><img src="https://img.shields.io/github/actions/workflow/status/Emart29/llm-quality-gate/ci.yml?label=tests&style=flat-square" alt="Tests" /></a>
-  <a href="https://pypi.org/project/llmq-gate/"><img src="https://img.shields.io/pypi/v/llmq-gate?style=flat-square&color=blue" alt="PyPI" /></a>
-  <a href="https://github.com/Emart29/llm-quality-gate/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License: MIT" /></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.8%2B-blue?style=flat-square" alt="Python 3.8+" /></a>
-  <a href="https://github.com/Emart29/llm-quality-gate/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs Welcome" /></a>
-</p>
-
-<p align="center">
-  <a href="https://llm-quality-gate.vercel.app">Website</a> · 
-  <a href="#quick-start">Quick Start</a> · 
-  <a href="https://pypi.org/project/llmq-gate/">PyPI</a> · 
-  <a href="#dashboard">Dashboard Demo</a> · 
-  <a href="#contributing">Contributing</a>
-</p>
+[![PyPI version](https://img.shields.io/pypi/v/llmq-gate?style=flat-square&color=blue)](https://pypi.org/project/llmq-gate/)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue?style=flat-square)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](https://github.com/Emart29/llm-quality-gate/blob/main/LICENSE)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/Emart29/llm-quality-gate/ci.yml?label=tests&style=flat-square)](https://github.com/Emart29/llm-quality-gate/actions)
 
 ---
 
 ## The Problem
 
-LLM applications fail silently. There's no stack trace when your summarizer starts hallucinating. No exception when your classifier drifts. A prompt change that works in development can quietly degrade production. Model updates break existing functionality overnight.
+LLM applications fail silently. No stack trace when your classifier drifts. No exception when prompts degrade. Model updates break functionality overnight without warning.
 
-Without systematic testing, these regressions go undetected until users complain.
-
-**Common regressions LLMQ catches:**
-
-- Prompt optimization improves one task but degrades another
-- Model updates change response formats, breaking downstream parsing
-- Provider API changes affect response quality
-- Temperature adjustments reduce output consistency
-- Context length changes truncate important information
+**LLMQ Gate catches regressions before production:**
+- Prompt changes that improve one task but break another
+- Model updates that change response formats
+- Provider API changes affecting output quality
+- Configuration drift reducing consistency
 
 ## Quick Start
 
-Get running in under 5 minutes:
-
 ```bash
-# Install
 pip install llmq-gate
-
-# Initialize project
 llmq init
-
-# Set your API key
 echo "GROQ_API_KEY=your_key_here" >> .env
-
-# Run your first evaluation
 llmq eval --provider groq
 ```
 
-View results in the browser:
+## CLI Example
+
+```bash
+$ llmq eval --provider groq --fail-on-gate
+
+LLMQ Gate v0.1.1 - LLM Quality Gate System
+==========================================
+
+Loading configuration... ✓
+Connecting to Groq (llama-3.1-8b-instant)... ✓
+Loading dataset (12 test cases)... ✓
+
+Running evaluations:
+  ✓ question_answering_1    Task Success: 0.95  Relevance: 0.92  Hallucination: 0.02
+  ✓ summarization_1         Task Success: 0.88  Relevance: 0.94  Hallucination: 0.01
+  ✓ classification_1        Task Success: 1.00  Relevance: 0.89  Hallucination: 0.00
+  ✗ sentiment_analysis_1    Task Success: 0.72  Relevance: 0.85  Hallucination: 0.03
+  ✓ code_generation_1       Task Success: 0.91  Relevance: 0.96  Hallucination: 0.01
+  ... (7 more)
+
+Metrics Summary:
+  Task Success:     0.87 (threshold: 0.80) ✓
+  Relevance:        0.91 (threshold: 0.70) ✓
+  Hallucination:    0.02 (threshold: 0.10) ✓
+  Consistency:      0.94 (threshold: 0.80) ✓
+
+Quality Gate: PASS ✓
+Exit code: 0
+```
+
+## Dashboard
+
+![LLMQ Gate Dashboard Screenshot](docs/dashboard.png)
+
+Interactive web dashboard with historical performance tracking, provider comparisons, and detailed test case analysis.
 
 ```bash
 llmq dashboard
@@ -72,11 +73,11 @@ llmq dashboard
 ## How It Works
 
 ```
-Dataset → LLM Provider → Metrics Engine → Quality Gates → Pass / Fail
+Dataset → LLM Provider → Metrics Engine → Quality Gates → Pass/Fail
 ```
 
 1. **Define test cases** in `evals/dataset.json` with inputs, expected outputs, and context
-2. **Run evaluations** against any supported provider
+2. **Run evaluations** against any supported provider  
 3. **Metrics are computed** automatically — task success, relevance, hallucination, consistency
 4. **Quality gates** pass or fail based on your configured thresholds
 5. **Results are stored** for historical tracking and comparison
@@ -96,7 +97,7 @@ Dataset → LLM Provider → Metrics Engine → Quality Gates → Pass / Fail
 
 ## CI/CD Integration
 
-Add quality gates to your pull request workflow. Builds fail automatically when LLM performance drops below your thresholds.
+Add quality gates to your pull request workflow. Builds fail automatically when LLM performance drops below thresholds.
 
 ```yaml
 # .github/workflows/llm-quality-gate.yml
@@ -115,7 +116,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install LLMQ
+      - name: Install LLMQ Gate
         run: pip install llmq-gate
 
       - name: Run Quality Gate
@@ -132,6 +133,8 @@ jobs:
 | **Relevance** | Embedding-based cosine similarity | Is the response relevant to the input? |
 | **Hallucination** | LLM-as-judge detection | Did the model fabricate information? |
 | **Consistency** | Multi-run variance analysis | Are responses stable across runs? |
+
+---
 
 ## Dashboard
 
@@ -214,13 +217,7 @@ llmq dashboard                               # Start web dashboard
 llmq settings --set '{"quality_gates": {"task_success_threshold": 0.9}}'
 ```
 
-
-## Migration Guide (<=0.1.0 -> 0.1.1)
-
-1. Rename existing `config.yaml` to `llmq.yaml`.
-2. Update scripts to use `--config-path` (or continue using `--config`) when you need an explicit location.
-3. Remove hard dependency on `llmq dashboard` for CLI evaluations; `llmq eval` now runs standalone if API is unavailable.
-4. If you parse CLI statuses in CI, adopt the documented exit codes (`0/1/2`).
+---
 
 ## API
 
@@ -239,8 +236,6 @@ curl http://localhost:8000/api/v1/compare
 
 ## Contributing
 
-Contributions are welcome — whether it's a bug fix, new provider integration, docs improvement, or feature request.
-
 ```bash
 git clone https://github.com/Emart29/llm-quality-gate.git
 cd llm-quality-gate
@@ -251,7 +246,7 @@ llmq doctor               # Verify setup
 ```
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
+2. Create a feature branch: `git checkout -b feature-name`  
 3. Make changes and add tests
 4. Run tests: `python -m pytest tests/ -v`
 5. Submit a pull request
@@ -260,18 +255,12 @@ llmq doctor               # Verify setup
 
 **v1.1** — Custom metric plugins · Slack/Discord webhooks · A/B testing framework · Performance benchmarking
 
-**v1.2** — Multi-language datasets · Advanced regression analysis · Cost tracking per provider · Distributed evaluation
+**v1.2** — Multi-language datasets · Advanced regression analysis · Cost tracking per provider · Distributed evaluation  
 
 **v2.0** — Visual prompt debugging · Automated prompt optimization · Enterprise SSO · Advanced analytics
+
+---
 
 ## License
 
 MIT — see [LICENSE](LICENSE) for details.
-
----
-
-<p align="center">
-  <a href="https://github.com/Emart29/llm-quality-gate">⭐ Star on GitHub</a> · 
-  <a href="https://pypi.org/project/llmq-gate/">📦 PyPI</a> · 
-  <a href="https://llm-quality-gate.vercel.app">🌐 Website</a>
-</p>
