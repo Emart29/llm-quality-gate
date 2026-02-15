@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from core.config import DEFAULT_CONFIG_NAME
+from core.errors import ConfigError
 from evals.service import EvaluationService
 
 router = APIRouter(prefix="/api/v1", tags=["api-v1"])
@@ -23,7 +25,7 @@ class EvaluateRequest(BaseModel):
     model: Optional[str] = None
     providers: List[ProviderRequest] = Field(default_factory=list)
     dataset: Optional[str] = None
-    config: str = "config.yaml"
+    config: str = DEFAULT_CONFIG_NAME
     workers: int = 5
     timeout: int = 30
     no_judge: bool = False
@@ -36,23 +38,51 @@ class CanaryRequest(EvaluateRequest):
     auto_promote: bool = True
 
 
+def _raise_config_error(exc: ConfigError) -> None:
+    raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post("/evaluate")
 async def evaluate(payload: EvaluateRequest) -> Dict[str, Any]:
-    if payload.providers:
-        results = await service.evaluate_many(
-            providers=[entry.model_dump() for entry in payload.providers],
-            dataset_path=payload.dataset,
-            config_path=payload.config,
-            workers=payload.workers,
-            timeout=payload.timeout,
-            no_judge=payload.no_judge,
-            no_db=payload.no_db,
-            non_deterministic=payload.non_deterministic,
-        )
-        return {"results": results}
+    try:
+        if payload.providers:
+            results = await service.evaluate_many(
+                providers=[entry.model_dump() for entry in payload.providers],
+                dataset_path=payload.dataset,
+                config_path=payload.config,
+                workers=payload.workers,
+                timeout=payload.timeout,
+                no_judge=payload.no_judge,
+                no_db=payload.no_db,
+                non_deterministic=payload.non_deterministic,
+            )
+            return {"results": results}
 
-    if payload.provider:
-        result = await service.evaluate_provider(
+        if payload.provider:
+            result = await service.evaluate_provider(
+                provider=payload.provider,
+                model=payload.model,
+                dataset_path=payload.dataset,
+                config_path=payload.config,
+                workers=payload.workers,
+                timeout=payload.timeout,
+                no_judge=payload.no_judge,
+                no_db=payload.no_db,
+                non_deterministic=payload.non_deterministic,
+            )
+            return result
+
+        return {"error": "Either provider or providers must be supplied."}
+    except ConfigError as exc:
+        _raise_config_error(exc)
+
+
+@router.post("/evaluate/start")
+async def start_evaluate(payload: EvaluateRequest) -> Dict[str, Any]:
+    if not payload.provider:
+        return {"error": "provider is required for async jobs"}
+    try:
+        job_id = await service.start_evaluation_job(
             provider=payload.provider,
             model=payload.model,
             dataset_path=payload.dataset,
@@ -63,27 +93,9 @@ async def evaluate(payload: EvaluateRequest) -> Dict[str, Any]:
             no_db=payload.no_db,
             non_deterministic=payload.non_deterministic,
         )
-        return result
-
-    return {"error": "Either provider or providers must be supplied."}
-
-
-@router.post("/evaluate/start")
-async def start_evaluate(payload: EvaluateRequest) -> Dict[str, Any]:
-    if not payload.provider:
-        return {"error": "provider is required for async jobs"}
-    job_id = await service.start_evaluation_job(
-        provider=payload.provider,
-        model=payload.model,
-        dataset_path=payload.dataset,
-        config_path=payload.config,
-        workers=payload.workers,
-        timeout=payload.timeout,
-        no_judge=payload.no_judge,
-        no_db=payload.no_db,
-        non_deterministic=payload.non_deterministic,
-    )
-    return {"job_id": job_id, "status": "running"}
+        return {"job_id": job_id, "status": "running"}
+    except ConfigError as exc:
+        _raise_config_error(exc)
 
 
 @router.get("/evaluate/status/{job_id}")
@@ -97,8 +109,11 @@ async def evaluate_active() -> Dict[str, Any]:
 
 
 @router.get("/providers")
-async def list_providers(config: str = "config.yaml") -> Dict[str, Any]:
-    return {"providers": service.list_providers(config)}
+async def list_providers(config: str = DEFAULT_CONFIG_NAME) -> Dict[str, Any]:
+    try:
+        return {"providers": service.list_providers(config)}
+    except ConfigError as exc:
+        _raise_config_error(exc)
 
 
 @router.get("/runs")
@@ -136,19 +151,22 @@ async def mark_run_baseline(run_id: str) -> Dict[str, Any]:
 async def evaluate_canary(payload: CanaryRequest) -> Dict[str, Any]:
     if not payload.provider:
         return {"error": "provider is required"}
-    return await service.run_canary_evaluation(
-        provider=payload.provider,
-        model=payload.model,
-        dataset_path=payload.dataset,
-        config_path=payload.config,
-        canary_ratio=payload.canary_ratio,
-        auto_promote=payload.auto_promote,
-        workers=payload.workers,
-        timeout=payload.timeout,
-        no_judge=payload.no_judge,
-        no_db=payload.no_db,
-        non_deterministic=payload.non_deterministic,
-    )
+    try:
+        return await service.run_canary_evaluation(
+            provider=payload.provider,
+            model=payload.model,
+            dataset_path=payload.dataset,
+            config_path=payload.config,
+            canary_ratio=payload.canary_ratio,
+            auto_promote=payload.auto_promote,
+            workers=payload.workers,
+            timeout=payload.timeout,
+            no_judge=payload.no_judge,
+            no_db=payload.no_db,
+            non_deterministic=payload.non_deterministic,
+        )
+    except ConfigError as exc:
+        _raise_config_error(exc)
 
 
 @router.get("/compare")
@@ -157,10 +175,16 @@ async def compare(limit: int = Query(100, ge=1, le=500)) -> Dict[str, Any]:
 
 
 @router.get("/settings")
-async def get_settings(config: str = "config.yaml") -> Dict[str, Any]:
-    return service.get_settings(config)
+async def get_settings(config: str = DEFAULT_CONFIG_NAME) -> Dict[str, Any]:
+    try:
+        return service.get_settings(config)
+    except ConfigError as exc:
+        _raise_config_error(exc)
 
 
 @router.post("/settings")
-async def update_settings(payload: Dict[str, Any], config: str = "config.yaml") -> Dict[str, Any]:
-    return service.update_settings(payload, config)
+async def update_settings(payload: Dict[str, Any], config: str = DEFAULT_CONFIG_NAME) -> Dict[str, Any]:
+    try:
+        return service.update_settings(payload, config)
+    except ConfigError as exc:
+        _raise_config_error(exc)

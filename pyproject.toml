@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llmq"
-version = "0.1.0"
+version = "0.1.1"
 description = "LLM Quality Gate - A provider-agnostic evaluation framework for LLM applications"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -85,7 +85,7 @@ Issues = "https://github.com/Emart29/llm-quality-gate/issues"
 llmq = "cli.main:app"
 
 [tool.setuptools.packages.find]
-include = ["cli*", "llm*", "evals*", "storage*", "dashboard*"]
+include = ["core*", "cli*", "llm*", "evals*", "storage*", "dashboard*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.yaml", "*.json", "*.html", "*.css", "*.js"]

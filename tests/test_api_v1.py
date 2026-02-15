@@ -47,3 +47,9 @@ def test_canary_requires_provider():
     response = client.post("/api/v1/evaluate/canary", json={})
     assert response.status_code == 200
     assert "error" in response.json()
+
+
+def test_providers_missing_config_returns_400():
+    response = client.get("/api/v1/providers", params={"config": "does-not-exist.yaml"})
+    assert response.status_code == 400
+    assert "Config file not found" in response.json()["detail"]
