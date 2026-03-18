@@ -13,6 +13,7 @@ class GeminiProvider(LLMProvider):
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.model_name = config.get("model", "gemini-1.5-flash")
+        self.model = self.model_name
         self.client = None
         
         # Initialize client if enabled
@@ -54,13 +55,13 @@ class GeminiProvider(LLMProvider):
             
             # Configure generation parameters
             import google.genai as genai
-            config = genai.types.GenerateContentConfig(
-                temperature=request.temperature,
-                max_output_tokens=request.max_tokens,
-            )
-            
+            config_kwargs = {
+                "temperature": request.temperature,
+                "max_output_tokens": request.max_tokens,
+            }
             if request.stop_sequences:
-                config.stop_sequences = request.stop_sequences
+                config_kwargs["stop_sequences"] = request.stop_sequences
+            config = genai.types.GenerateContentConfig(**config_kwargs)
             
             # Generate response using the new API
             response = await self.client.aio.models.generate_content(

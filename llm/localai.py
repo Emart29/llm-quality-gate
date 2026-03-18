@@ -15,6 +15,7 @@ class LocalAIProvider(LLMProvider):
         super().__init__(config)
         self.base_url = config.get("base_url", "http://localhost:8080")
         self.model_name = config.get("model", "gpt-3.5-turbo")
+        self.model = self.model_name
         self.timeout = config.get("timeout", 120)  # Local models can be slower
         self._client = None
         
@@ -80,7 +81,8 @@ class LocalAIProvider(LLMProvider):
             data = response.json()
             
             # Extract response content
-            content = data["choices"][0]["message"]["content"]
+            choices = data.get("choices", [])
+            content = choices[0]["message"]["content"] if choices else ""
             usage = data.get("usage", {})
             
             return LLMResponse(
@@ -93,7 +95,7 @@ class LocalAIProvider(LLMProvider):
                     "total_tokens": usage.get("total_tokens", 0)
                 },
                 metadata={
-                    "finish_reason": data["choices"][0].get("finish_reason"),
+                    "finish_reason": choices[0].get("finish_reason") if choices else None,
                     "created": data.get("created"),
                     "object": data.get("object")
                 }

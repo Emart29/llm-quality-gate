@@ -283,8 +283,9 @@ const Components = (() => {
     // ── Hydrate Select ──
     function hydrateSelect(id, values) {
         const el = document.getElementById(id);
-        if (!el || !el.querySelector('option')) return;
-        const first = el.querySelector('option').outerHTML;
+        if (!el) return;
+        const firstOpt = el.querySelector('option');
+        const first = firstOpt ? firstOpt.outerHTML : '<option value="">All</option>';
         el.innerHTML = first + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
     }
 

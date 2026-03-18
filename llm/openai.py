@@ -73,7 +73,8 @@ class OpenAIProvider(LLMProvider):
             data = response.json()
             
             # Extract response content
-            content = data["choices"][0]["message"]["content"]
+            choices = data.get("choices", [])
+            content = choices[0]["message"]["content"] if choices else ""
             usage = data.get("usage", {})
             
             return LLMResponse(
@@ -86,7 +87,7 @@ class OpenAIProvider(LLMProvider):
                     "total_tokens": usage.get("total_tokens", 0)
                 },
                 metadata={
-                    "finish_reason": data["choices"][0].get("finish_reason"),
+                    "finish_reason": choices[0].get("finish_reason") if choices else None,
                     "request_id": response.headers.get("x-request-id")
                 }
             )
