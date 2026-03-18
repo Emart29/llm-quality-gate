@@ -15,6 +15,7 @@ class OpenRouterProvider(LLMProvider):
         super().__init__(config)
         self.base_url = config.get("base_url", "https://openrouter.ai/api/v1")
         self.model_name = config.get("model", "microsoft/wizardlm-2-8x22b")
+        self.model = self.model_name
         self.site_url = config.get("site_url", "https://llm-quality-gate")
         self.app_name = config.get("app_name", "LLM Quality Gate")
         self.timeout = config.get("timeout", 60)
@@ -78,7 +79,8 @@ class OpenRouterProvider(LLMProvider):
             data = response.json()
             
             # Extract response content
-            content = data["choices"][0]["message"]["content"]
+            choices = data.get("choices", [])
+            content = choices[0]["message"]["content"] if choices else ""
             usage = data.get("usage", {})
             
             return LLMResponse(
@@ -91,7 +93,7 @@ class OpenRouterProvider(LLMProvider):
                     "total_tokens": usage.get("total_tokens", 0)
                 },
                 metadata={
-                    "finish_reason": data["choices"][0].get("finish_reason"),
+                    "finish_reason": choices[0].get("finish_reason") if choices else None,
                     "model_used": data.get("model"),  # OpenRouter may use different model
                     "provider_used": data.get("provider", {}).get("name") if data.get("provider") else None
                 }

@@ -56,16 +56,16 @@ class BaseLLM:
 
         import asyncio
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as pool:
-                    return pool.submit(asyncio.run, self.provider.generate(request)).result()
+            loop = asyncio.get_running_loop()
         except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            loop = None
 
-        return loop.run_until_complete(self.provider.generate(request))
+        if loop and loop.is_running():
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                return pool.submit(asyncio.run, self.provider.generate(request)).result()
+
+        return asyncio.run(self.provider.generate(request))
 
 
 class LLMFactory:

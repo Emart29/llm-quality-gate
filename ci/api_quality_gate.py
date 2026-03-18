@@ -71,7 +71,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--provider", default="groq")
     parser.add_argument("--model", default=None)
-    parser.add_argument("--config", default="config.yaml")
+    parser.add_argument("--config", default="llmq.yaml")
     parser.add_argument("--dataset", default=None)
     parser.add_argument("--api-base", default="http://127.0.0.1:8000/api/v1")
     parser.add_argument("--output", default="evaluation_results/ci_result.json")

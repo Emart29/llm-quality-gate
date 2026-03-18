@@ -3,10 +3,10 @@
 # ============================================================================
 # 
 # This is a comprehensive example configuration for LLMQ.
-# Copy this file to `config.yaml` and customize for your needs.
+# Copy this file to `llmq.yaml` and customize for your needs.
 #
 # Quick start:
-#   1. Copy: cp config.example.yaml config.yaml
+#   1. Copy: cp config.example.yaml llmq.yaml
 #   2. Set API keys in .env file (see .env.example)
 #   3. Run: llmq dashboard
 #

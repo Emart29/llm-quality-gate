@@ -55,29 +55,6 @@ async def index():
 
 # ── API endpoints ─────────────────────────────────────────────────────
 
-@app.get("/api/runs")
-async def list_runs(
-    provider: Optional[str] = None,
-    model: Optional[str] = None,
-    dataset_version: Optional[str] = None,
-    commit_hash: Optional[str] = None,
-    quality_gate_passed: Optional[bool] = None,
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-):
-    repo = get_repo()
-    runs = repo.list_runs(
-        provider=provider,
-        model=model,
-        dataset_version=dataset_version,
-        commit_hash=commit_hash,
-        quality_gate_passed=quality_gate_passed,
-        limit=limit,
-        offset=offset,
-    )
-    return {"runs": runs, "total": len(runs)}
-
-
 
 
 @app.get("/api/run-filters")

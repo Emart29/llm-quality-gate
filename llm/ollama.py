@@ -15,6 +15,7 @@ class OllamaProvider(LLMProvider):
         super().__init__(config)
         self.base_url = config.get("base_url", "http://localhost:11434")
         self.model_name = config.get("model", "llama2")
+        self.model = self.model_name
         self.timeout = config.get("timeout", 120)  # Local models can be slower
         self._client = None
         

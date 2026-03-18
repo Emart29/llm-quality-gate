@@ -113,8 +113,8 @@ class Database:
 
     def _init_schema(self) -> None:
         self.conn.execute(SCHEMA_SQL)
-        self.conn.execute("ALTER TABLE evaluation_runs ADD COLUMN IF NOT EXISTS regression_detected BOOLEAN DEFAULT FALSE")
-        self.conn.execute("ALTER TABLE evaluation_runs ADD COLUMN IF NOT EXISTS regression_summary JSON")
+        # regression_detected and regression_summary are already in the CREATE TABLE statement,
+        # so no ALTER TABLE needed. Previous ALTER TABLE calls caused errors with FK dependencies.
         logger.info(f"Database schema initialized at {self.db_path}")
 
     def close(self) -> None:

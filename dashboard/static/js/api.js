@@ -26,10 +26,10 @@ const API = (() => {
     }
 
     return {
-        // Overview
+        // Overview (served by app.py at /api)
         getOverview: () => _fetch(`${BASE}/overview`),
 
-        // Runs (v1)
+        // Runs
         getRuns: (params = {}) => {
             const qs = new URLSearchParams({ limit: '80', ...params });
             return _fetch(`${BASE_V1}/runs?${qs}`);

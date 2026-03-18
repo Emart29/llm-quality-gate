@@ -119,7 +119,9 @@ const LLMQ = (() => {
     };
 })();
 
-// Boot
-document.addEventListener('DOMContentLoaded', LLMQ.init);
-// Fallback if DOMContentLoaded already fired
-if (document.readyState !== 'loading') LLMQ.init();
+// Boot — only call init once
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', LLMQ.init);
+} else {
+    LLMQ.init();
+}

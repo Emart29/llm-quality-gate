@@ -54,7 +54,7 @@ const Pages = (() => {
         if (val('filter-provider')) params.provider = val('filter-provider');
         if (val('filter-model')) params.model = val('filter-model');
         if (val('filter-dataset')) params.dataset_version = val('filter-dataset');
-        if (val('filter-status')) params.quality_gate_passed = val('filter-status');
+        if (val('filter-status')) params.quality_gate_passed = val('filter-status') === 'true';
         if (val('filter-commit')) params.commit_hash = val('filter-commit');
 
         const data = await API.getRuns(params);

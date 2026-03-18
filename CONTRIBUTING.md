@@ -32,7 +32,7 @@ Thank you for your interest in contributing to the LLM Quality Gate project.
 1. Create `llm/your_provider.py` extending `LLMProvider`
 2. Implement the `async generate(request: LLMRequest) -> LLMResponse` method
 3. Register in `llm/factory.py` `PROVIDERS` dict
-4. Add configuration to `config.yaml`
+4. Add configuration to `llmq.yaml`
 5. Add tests in `tests/test_llm_providers.py`
 
 ## Adding Test Cases

@@ -1,6 +1,5 @@
 """Google Gemini LLM provider implementation."""
 
-import google.genai as genai
 from typing import Dict, Any
 from .base import LLMProvider, LLMRequest, LLMResponse, ProviderNotConfiguredError
 import logging
@@ -14,6 +13,7 @@ class GeminiProvider(LLMProvider):
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.model_name = config.get("model", "gemini-1.5-flash")
+        self.model = self.model_name
         self.client = None
         
         # Initialize client if enabled
@@ -25,8 +25,9 @@ class GeminiProvider(LLMProvider):
         # Only create client if we have an API key
         if not self.api_key:
             return
-            
+
         try:
+            import google.genai as genai
             self.client = genai.Client(api_key=self.api_key)
         except Exception as e:
             logger.error(f"Failed to initialize Gemini client: {e}")
@@ -53,13 +54,14 @@ class GeminiProvider(LLMProvider):
             contents.append({"role": "user", "parts": [{"text": request.prompt}]})
             
             # Configure generation parameters
-            config = genai.types.GenerateContentConfig(
-                temperature=request.temperature,
-                max_output_tokens=request.max_tokens,
-            )
-            
+            import google.genai as genai
+            config_kwargs = {
+                "temperature": request.temperature,
+                "max_output_tokens": request.max_tokens,
+            }
             if request.stop_sequences:
-                config.stop_sequences = request.stop_sequences
+                config_kwargs["stop_sequences"] = request.stop_sequences
+            config = genai.types.GenerateContentConfig(**config_kwargs)
             
             # Generate response using the new API
             response = await self.client.aio.models.generate_content(

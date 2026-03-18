@@ -15,6 +15,7 @@ class HuggingFaceProvider(LLMProvider):
         super().__init__(config)
         self.base_url = "https://api-inference.huggingface.co"
         self.model_name = config.get("model", "microsoft/DialoGPT-medium")
+        self.model = self.model_name
         self.timeout = config.get("timeout", 60)  # HF can be slower
         self._client = None
         
