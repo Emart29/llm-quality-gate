@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import asyncio
 import logging
 
@@ -21,7 +21,7 @@ class LLMRequest(BaseModel):
     temperature: float = 0.0
     max_tokens: int = 1000
     stop_sequences: Optional[List[str]] = None
-    metadata: Dict[str, Any] = {}
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class LLMResponse(BaseModel):
@@ -29,8 +29,8 @@ class LLMResponse(BaseModel):
     content: str
     provider: str
     model: str
-    usage: Dict[str, int] = {}
-    metadata: Dict[str, Any] = {}
+    usage: Dict[str, int] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
     error: Optional[str] = None
 
 

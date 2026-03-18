@@ -111,12 +111,21 @@ def _get_embedding_model():
 
 def _cosine_similarity(a, b) -> float:
     """Compute cosine similarity between two vectors."""
-    import numpy as np
-    a, b = np.asarray(a), np.asarray(b)
-    denom = (np.linalg.norm(a) * np.linalg.norm(b))
-    if denom == 0:
-        return 0.0
-    return float(np.dot(a, b) / denom)
+    try:
+        import numpy as np
+        a, b = np.asarray(a), np.asarray(b)
+        denom = (np.linalg.norm(a) * np.linalg.norm(b))
+        if denom == 0:
+            return 0.0
+        return float(np.dot(a, b) / denom)
+    except ImportError:
+        # Pure-Python fallback
+        dot = sum(x * y for x, y in zip(a, b))
+        norm_a = sum(x * x for x in a) ** 0.5
+        norm_b = sum(x * x for x in b) ** 0.5
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+        return dot / (norm_a * norm_b)
 
 
 def _token_overlap(text_a: str, text_b: str) -> float:

@@ -39,8 +39,8 @@ def run_evaluation(provider: str = "groq", model: str = None):
     from evals.comprehensive_runner import ComprehensiveEvaluationRunner
     import asyncio
 
-    config = LLMFactory.load_config(str(PROJECT_ROOT / "config.yaml"))
-    factory = LLMFactory(str(PROJECT_ROOT / "config.yaml"))
+    config = LLMFactory.load_config(str(PROJECT_ROOT / "llmq.yaml"))
+    factory = LLMFactory(str(PROJECT_ROOT / "llmq.yaml"))
 
     if not model:
         model = config.get("providers", {}).get(provider, {}).get("model", "")

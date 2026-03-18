@@ -99,9 +99,10 @@ class TestLLMProviders:
 
     @pytest.mark.asyncio
     @patch.dict('os.environ', {'TEST_API_KEY': 'test-key-123'})
-    @patch('google.genai.Client')
-    async def test_gemini_provider(self, mock_client_class, mock_config, sample_request):
+    async def test_gemini_provider(self, mock_config, sample_request):
         """Test Gemini provider."""
+        import sys
+
         mock_usage = Mock()
         mock_usage.prompt_token_count = 10
         mock_usage.candidates_token_count = 8
@@ -122,16 +123,21 @@ class TestLLMProviders:
         mock_client.aio = Mock()
         mock_client.aio.models = Mock()
         mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
-        mock_client_class.return_value = mock_client
 
-        provider = GeminiProvider(mock_config)
-        response = await provider.generate(sample_request)
+        mock_genai = Mock()
+        mock_genai.Client.return_value = mock_client
+        mock_genai.types = Mock()
+        mock_genai.types.GenerateContentConfig.return_value = Mock()
 
-        assert response.content == "Gemini generated response"
-        assert response.error is None
+        mock_google = Mock()
+        mock_google.genai = mock_genai
 
-        assert response.content == "Gemini generated response"
-        assert response.error is None
+        with patch.dict(sys.modules, {'google': mock_google, 'google.genai': mock_genai}):
+            provider = GeminiProvider(mock_config)
+            # generate() also imports google.genai lazily, so keep the mock active
+            response = await provider.generate(sample_request)
+            assert response.content == "Gemini generated response"
+            assert response.error is None
 
     @pytest.mark.asyncio
     @patch.dict('os.environ', {'TEST_API_KEY': 'test-key-123'})

@@ -8,7 +8,7 @@ on:
       - 'prompts/**'
       - '**/*prompt*'
       - 'llm/**'
-      - 'config.yaml'
+      - 'llmq.yaml'
       - 'dashboard/**'
       - 'integrations/**'
       - 'ci/**'
@@ -20,7 +20,7 @@ on:
       - 'prompts/**'
       - '**/*prompt*'
       - 'llm/**'
-      - 'config.yaml'
+      - 'llmq.yaml'
       - 'dashboard/**'
       - 'integrations/**'
       - 'ci/**'
@@ -83,7 +83,7 @@ jobs:
             try {
               const result = JSON.parse(fs.readFileSync('evaluation_results/ci_result.json', 'utf8'));
               const gate = result.quality_gate || {};
-              const status = result.passed ? ':white_check_mark: **PASSED**' : ':x: **FAILED**';
+              const status = gate.passed ? ':white_check_mark: **PASSED**' : ':x: **FAILED**';
 
               body += `**Status:** ${status}\n`;
               body += `**Provider:** ${result.provider}/${result.model}\n`;

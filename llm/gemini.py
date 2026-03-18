@@ -1,6 +1,5 @@
 """Google Gemini LLM provider implementation."""
 
-import google.genai as genai
 from typing import Dict, Any
 from .base import LLMProvider, LLMRequest, LLMResponse, ProviderNotConfiguredError
 import logging
@@ -25,8 +24,9 @@ class GeminiProvider(LLMProvider):
         # Only create client if we have an API key
         if not self.api_key:
             return
-            
+
         try:
+            import google.genai as genai
             self.client = genai.Client(api_key=self.api_key)
         except Exception as e:
             logger.error(f"Failed to initialize Gemini client: {e}")
@@ -53,6 +53,7 @@ class GeminiProvider(LLMProvider):
             contents.append({"role": "user", "parts": [{"text": request.prompt}]})
             
             # Configure generation parameters
+            import google.genai as genai
             config = genai.types.GenerateContentConfig(
                 temperature=request.temperature,
                 max_output_tokens=request.max_tokens,
