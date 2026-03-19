@@ -208,6 +208,26 @@ class EvaluationService:
             except Exception:
                 judge_llm = None
 
+        # Warn if judge and generator are the same model
+        if judge_llm is not None:
+            try:
+                judge_provider_name = config.get("roles", {}).get("judge", {}).get("provider")
+                if judge_provider_name == provider:
+                    judge_model = config.get("roles", {}).get("judge", {}).get("model", "")
+                    gen_model = resolved_model
+                    if judge_model == gen_model:
+                        logger.warning(
+                            f"Judge and generator use the same model ({provider}/{gen_model}). "
+                            "LLM-as-judge scores will be unreliable. Configure a different judge provider for accurate results."
+                        )
+                    else:
+                        logger.warning(
+                            f"Judge and generator use the same provider ({provider}). "
+                            "Consider using a different provider for judging."
+                        )
+            except Exception:
+                pass
+
         metrics_engine = MetricsEngine(judge_llm=judge_llm, thresholds=config.get("quality_gates", {}))
         runner = EvaluationRunner(
             llm_factory=factory,

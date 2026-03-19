@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llmq-gate"
-version = "0.1.1"
+version = "0.2.0"
 description = "LLM Quality Gate - A provider-agnostic evaluation framework for LLM applications"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "LLMQ Team", email = "team@llmq.dev"},
 ]
@@ -16,7 +16,6 @@ keywords = ["llm", "ai", "evaluation", "quality", "testing"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
@@ -69,6 +68,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest-cov",
+    "pytest-asyncio",
     "black",
     "isort",
     "flake8",
@@ -104,3 +104,4 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
+asyncio_mode = "auto"

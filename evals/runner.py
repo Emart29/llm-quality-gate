@@ -4,7 +4,6 @@ import asyncio
 import logging
 import os
 from typing import List, Dict, Any, Optional, Callable, Union
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
 import time
@@ -164,49 +163,47 @@ class EvaluationRunner:
             generation_config["temperature"] = 0.0
             generation_config["top_p"] = 1.0
 
+        semaphore = asyncio.Semaphore(self.max_workers)
+        completed = 0
+
+        async def bounded_execute(test_case):
+            nonlocal completed
+            async with semaphore:
+                result = await self._execute_test_case(llm, test_case, generation_config)
+                completed += 1
+                if progress_callback:
+                    progress_callback(completed, len(test_cases))
+                return result
+
+        raw_results = await asyncio.gather(
+            *[bounded_execute(tc) for tc in test_cases],
+            return_exceptions=True
+        )
+
         test_case_results = []
         successful_executions = 0
         failed_executions = 0
 
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            future_to_test_case = {
-                executor.submit(
-                    self._execute_test_case,
-                    llm,
-                    test_case,
-                    generation_config
-                ): test_case
-                for test_case in test_cases
-            }
-
-            completed = 0
-            for future in as_completed(future_to_test_case):
-                test_case = future_to_test_case[future]
-                try:
-                    result = future.result()
-                    test_case_results.append(result)
-
-                    if result.success:
-                        successful_executions += 1
-                    else:
-                        failed_executions += 1
-
-                except Exception as e:
-                    logger.error(f"Unexpected error processing test case {test_case.id}: {e}")
-                    failed_result = TestCaseResult(
-                        test_case_id=test_case.id,
-                        test_case=test_case,
-                        generated_output="",
-                        execution_time=0.0,
-                        success=False,
-                        error=f"Unexpected error: {str(e)}"
-                    )
-                    test_case_results.append(failed_result)
+        for i, result in enumerate(raw_results):
+            if isinstance(result, Exception):
+                test_case = test_cases[i]
+                logger.error(f"Unexpected error processing test case {test_case.id}: {result}")
+                failed_result = TestCaseResult(
+                    test_case_id=test_case.id,
+                    test_case=test_case,
+                    generated_output="",
+                    execution_time=0.0,
+                    success=False,
+                    error=f"Unexpected error: {str(result)}"
+                )
+                test_case_results.append(failed_result)
+                failed_executions += 1
+            else:
+                test_case_results.append(result)
+                if result.success:
+                    successful_executions += 1
+                else:
                     failed_executions += 1
-
-                completed += 1
-                if progress_callback:
-                    progress_callback(completed, len(test_cases))
 
         total_execution_time = time.time() - start_time
 
@@ -233,7 +230,7 @@ class EvaluationRunner:
         logger.info(f"Evaluation completed: {successful_executions}/{len(test_cases)} successful")
         return evaluation_result
 
-    def _execute_test_case(
+    async def _execute_test_case(
         self,
         llm,
         test_case: TestCase,
@@ -249,7 +246,7 @@ class EvaluationRunner:
                     messages.append({"role": "system", "content": test_case.system_prompt})
                 messages.append({"role": "user", "content": test_case.input_prompt})
 
-                response = llm.generate(
+                response = await llm.generate(
                     messages=messages,
                     **generation_config,
                     timeout=self.timeout_seconds
@@ -285,7 +282,7 @@ class EvaluationRunner:
                         metadata={"failed_attempts": self.retry_attempts}
                     )
 
-                time.sleep(1.0 * (attempt + 1))
+                await asyncio.sleep(1.0 * (attempt + 1))
 
         # Should not reach here, but safety return
         return TestCaseResult(
@@ -297,7 +294,7 @@ class EvaluationRunner:
             error="All retry attempts exhausted",
         )
 
-    def run_consistency_test(
+    async def run_consistency_test(
         self,
         test_case: TestCase,
         provider_name: str,
@@ -305,25 +302,20 @@ class EvaluationRunner:
         num_runs: int = 5
     ) -> List[TestCaseResult]:
         """Run the same test case multiple times to test consistency."""
-        # In CI mode, reduce the number of runs for faster execution
         if os.environ.get('CI', '').lower() in ('true', '1', 'yes'):
-            num_runs = min(num_runs, 2)  # Limit to 2 runs in CI
+            num_runs = min(num_runs, 2)
             logger.info(f"CI mode detected: reducing consistency runs to {num_runs}")
-        
+
         logger.info(f"Running consistency test for test case {test_case.id} ({num_runs} runs)")
-
         llm = self.llm_factory.create_llm(provider_name, model_name)
-
-        # Use non-deterministic generation for consistency testing
         generation_config = {"temperature": 0.7, "top_p": 0.9}
 
         results = []
         for run_num in range(num_runs):
-            result = self._execute_test_case(llm, test_case, generation_config)
+            result = await self._execute_test_case(llm, test_case, generation_config)
             result.metadata = result.metadata or {}
             result.metadata["consistency_run"] = run_num + 1
             results.append(result)
-
         return results
 
     def save_results(self, result: EvaluationResult, output_path: str) -> None:

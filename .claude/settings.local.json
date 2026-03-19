@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venvScriptsactivate)",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(source venv/Scripts/activate)",
+      "Bash(venv/Scripts/pip install:*)",
+      "Bash(python -m pytest tests/ -v --tb=short)",
+      "Bash(venv/Scripts/python -m pytest tests/ -x --tb=short -q)",
+      "Bash(python -m pytest tests/ -q --tb=short)",
+      "Bash(rm -rf dist/ build/ *.egg-info)",
+      "Bash(python -m build)",
+      "Bash(python -m twine upload dist/*)"
+    ]
+  }
+}

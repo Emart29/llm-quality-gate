@@ -28,7 +28,7 @@ class BaseLLM:
     def __init__(self, provider: LLMProvider):
         self.provider = provider
 
-    def generate(
+    async def generate(
         self,
         messages: List[Dict[str, str]],
         temperature: float = 0.0,
@@ -53,19 +53,7 @@ class BaseLLM:
             max_tokens=max_tokens,
             **kwargs
         )
-
-        import asyncio
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-
-        if loop and loop.is_running():
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                return pool.submit(asyncio.run, self.provider.generate(request)).result()
-
-        return asyncio.run(self.provider.generate(request))
+        return await self.provider.generate(request)
 
 
 class LLMFactory:

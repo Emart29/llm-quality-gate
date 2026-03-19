@@ -204,18 +204,18 @@ class TestNoEmptyBearerHeaders:
             provider = GroqProvider(config)
             assert provider._client is None
     
-    def test_client_property_raises_error_when_disabled(self):
-        """Test client property raises error when provider is disabled."""
+    def test_ensure_enabled_raises_error_when_disabled(self):
+        """Test ensure_enabled raises error when provider is disabled (no client property in refactored design)."""
         config = {
             "api_key_env": "MISSING_API_KEY",
             "model": "gpt-3.5-turbo"
         }
-        
+
         with patch.dict(os.environ, {}, clear=True):
             provider = OpenAIProvider(config)
-            
+
             with pytest.raises(ProviderNotConfiguredError):
-                _ = provider.client
+                provider.ensure_enabled()
 
 
 class TestLocalProviders:

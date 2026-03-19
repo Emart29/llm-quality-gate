@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class OpenRouterProvider(LLMProvider):
     """OpenRouter LLM provider (OpenAI-compatible API)."""
-    
+
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.base_url = config.get("base_url", "https://openrouter.ai/api/v1")
@@ -19,48 +19,25 @@ class OpenRouterProvider(LLMProvider):
         self.site_url = config.get("site_url", "https://llm-quality-gate")
         self.app_name = config.get("app_name", "LLM Quality Gate")
         self.timeout = config.get("timeout", 60)
-        self._client = None
-        
-        # Initialize client if enabled
-        if self.enabled:
-            self._initialize_client()
-    
-    def _initialize_client(self):
-        """Initialize HTTP client with proper headers."""
-        # Only create client if we have an API key
-        if not self.api_key:
-            return
-            
-        self._client = httpx.AsyncClient(
-            base_url=self.base_url,
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": self.site_url,
-                "X-Title": self.app_name
-            },
-            timeout=self.timeout
-        )
-        
-    @property
-    def client(self):
-        """Get HTTP client, ensuring provider is enabled."""
-        self.ensure_enabled()
-        return self._client
-    
+
+    def _make_headers(self) -> Dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": self.site_url,
+            "X-Title": self.app_name,
+        }
+
     async def generate(self, request: LLMRequest) -> LLMResponse:
         """Generate response using OpenRouter API."""
-        # Ensure provider is enabled before making API calls
         self.ensure_enabled()
-        
+
         try:
-            # Build messages array (OpenAI-compatible format)
             messages = []
             if request.system_prompt:
                 messages.append({"role": "system", "content": request.system_prompt})
             messages.append({"role": "user", "content": request.prompt})
-            
-            # Prepare API request
+
             payload = {
                 "model": self.model_name,
                 "messages": messages,
@@ -68,21 +45,23 @@ class OpenRouterProvider(LLMProvider):
                 "max_tokens": request.max_tokens,
                 "stream": False
             }
-            
+
             if request.stop_sequences:
                 payload["stop"] = request.stop_sequences
-            
-            # Make API call
-            response = await self.client.post("/chat/completions", json=payload)
+
+            async with httpx.AsyncClient(
+                base_url=self.base_url,
+                headers=self._make_headers(),
+                timeout=self.timeout,
+            ) as client:
+                response = await client.post("/chat/completions", json=payload)
             response.raise_for_status()
-            
+
             data = response.json()
-            
-            # Extract response content
             choices = data.get("choices", [])
             content = choices[0]["message"]["content"] if choices else ""
             usage = data.get("usage", {})
-            
+
             return LLMResponse(
                 content=content,
                 provider=self.provider_name,
@@ -94,33 +73,20 @@ class OpenRouterProvider(LLMProvider):
                 },
                 metadata={
                     "finish_reason": choices[0].get("finish_reason") if choices else None,
-                    "model_used": data.get("model"),  # OpenRouter may use different model
+                    "model_used": data.get("model"),
                     "provider_used": data.get("provider", {}).get("name") if data.get("provider") else None
                 }
             )
-            
+
+        except httpx.TimeoutException:
+            error_msg = "OpenRouter request timed out"
+            logger.error(error_msg)
+            return LLMResponse(content="", provider=self.provider_name, model=self.model, error=error_msg)
         except httpx.HTTPStatusError as e:
             error_msg = f"HTTP {e.response.status_code}: {e.response.text}"
             logger.error(f"OpenRouter API error: {error_msg}")
-            return LLMResponse(
-                content="",
-                provider=self.provider_name,
-                model=self.model_name,
-                error=error_msg
-            )
+            return LLMResponse(content="", provider=self.provider_name, model=self.model_name, error=error_msg)
         except Exception as e:
-            error_msg = f"OpenRouter provider error: {str(e)}"
+            error_msg = f"OpenRouter provider error: {type(e).__name__}: {e}" if str(e) else f"OpenRouter provider error: {type(e).__name__}"
             logger.error(error_msg)
-            return LLMResponse(
-                content="",
-                provider=self.provider_name,
-                model=self.model_name,
-                error=error_msg
-            )
-    
-    async def __aenter__(self):
-        return self
-    
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self._client:
-            await self._client.aclose()
+            return LLMResponse(content="", provider=self.provider_name, model=self.model_name, error=error_msg)

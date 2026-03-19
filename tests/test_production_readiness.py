@@ -185,29 +185,35 @@ class TestDatabase:
         from storage.database import Database
         with tempfile.TemporaryDirectory() as td:
             db = Database(os.path.join(td, "test.db"))
-            tables = db.conn.execute(
-                "SELECT table_name FROM information_schema.tables "
-                "WHERE table_schema='main'"
-            ).fetchall()
-            names = {t[0] for t in tables}
-            assert {"evaluation_runs", "test_case_results",
-                    "quality_gate_history", "provider_comparisons"} <= names
+            try:
+                tables = db.conn.execute(
+                    "SELECT table_name FROM information_schema.tables "
+                    "WHERE table_schema='main'"
+                ).fetchall()
+                names = {t[0] for t in tables}
+                assert {"evaluation_runs", "test_case_results",
+                        "quality_gate_history", "provider_comparisons"} <= names
+            finally:
+                db.close()
 
     def test_insert_and_query_evaluation_run(self):
         from storage.database import Database
         with tempfile.TemporaryDirectory() as td:
             db = Database(os.path.join(td, "test.db"))
-            db.conn.execute(
-                "INSERT INTO evaluation_runs "
-                "(id, provider_name, model_name, dataset_name, dataset_version, "
-                "total_test_cases, successful_executions, failed_executions, "
-                "overall_score, total_execution_time, success_rate, "
-                "quality_gate_passed, created_at) "
-                "VALUES ('r1','groq','llama','ds','1.0',"
-                "10,8,2,0.85,30.5,0.8,true,NOW())"
-            )
-            rows = db.conn.execute("SELECT * FROM evaluation_runs").fetchall()
-            assert len(rows) == 1
+            try:
+                db.conn.execute(
+                    "INSERT INTO evaluation_runs "
+                    "(id, provider_name, model_name, dataset_name, dataset_version, "
+                    "total_test_cases, successful_executions, failed_executions, "
+                    "overall_score, total_execution_time, success_rate, "
+                    "quality_gate_passed, created_at) "
+                    "VALUES ('r1','groq','llama','ds','1.0',"
+                    "10,8,2,0.85,30.5,0.8,true,NOW())"
+                )
+                rows = db.conn.execute("SELECT * FROM evaluation_runs").fetchall()
+                assert len(rows) == 1
+            finally:
+                db.close()
 
 
 # ── Storage Models ────────────────────────────────────────────────────────

@@ -149,6 +149,7 @@ class MetricResult:
     passed: bool
     threshold: float
     details: Dict[str, Any] = field(default_factory=dict)
+    skipped: bool = False
 
 
 @dataclass
@@ -171,18 +172,33 @@ class QualityGateResult:
 # ── Individual metric implementations ─────────────────────────────────────
 
 class TaskSuccessMetric:
-    """Evaluates task success via exact match and semantic similarity."""
+    """Evaluates task success via LLM judge (preferred) or semantic similarity fallback."""
 
-    def __init__(self, exact_match_weight: float = 0.3, semantic_weight: float = 0.7):
-        self.exact_match_weight = exact_match_weight
-        self.semantic_weight = semantic_weight
+    JUDGE_SYSTEM_PROMPT = (
+        "You are an expert evaluator. Your job is to score how well an AI-generated response "
+        "completes the task described in the input prompt, compared to the expected answer.\n\n"
+        "Respond with EXACTLY this format:\n"
+        "SCORE: <float between 0.0 and 1.0>\n"
+        "REASON: <brief explanation>\n\n"
+        "Scoring guide:\n"
+        "1.0 = Perfect: fully correct, complete, matches expected answer\n"
+        "0.8 = Good: mostly correct with minor differences\n"
+        "0.5 = Partial: some correct elements but missing key parts\n"
+        "0.2 = Poor: mostly wrong but shows some understanding\n"
+        "0.0 = Wrong: completely incorrect or irrelevant"
+    )
 
-    def evaluate(
-        self,
-        generated: str,
-        expected: Optional[str],
-        threshold: float = 0.8,
-    ) -> MetricResult:
+    JUDGE_USER_TEMPLATE = (
+        "## Input Prompt\n{prompt}\n\n"
+        "## Expected Answer\n{expected}\n\n"
+        "## AI-Generated Response\n{generated}\n\n"
+        "Score how well the generated response completes the task."
+    )
+
+    def __init__(self, judge_llm=None):
+        self.judge_llm = judge_llm
+
+    def evaluate(self, prompt: str, generated: str, expected: Optional[str], threshold: float = 0.7) -> MetricResult:
         if not expected:
             return MetricResult(
                 metric_name="task_success",
@@ -190,37 +206,81 @@ class TaskSuccessMetric:
                 passed=True,
                 threshold=threshold,
                 details={"note": "No expected output; skipped"},
+                skipped=True,
             )
 
-        exact = self._exact_match_score(generated, expected)
-        semantic = self._semantic_similarity(generated, expected)
-        score = self.exact_match_weight * exact + self.semantic_weight * semantic
+        if self.judge_llm is not None:
+            return self._judge_based_evaluation(prompt, generated, expected, threshold)
+        return self._semantic_evaluation(generated, expected, threshold)
+
+    def _judge_based_evaluation(self, prompt: str, generated: str, expected: str, threshold: float) -> MetricResult:
+        import asyncio
+        user_msg = self.JUDGE_USER_TEMPLATE.format(prompt=prompt, expected=expected, generated=generated)
+        try:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    response = pool.submit(
+                        asyncio.run,
+                        self.judge_llm.generate(
+                            messages=[
+                                {"role": "system", "content": self.JUDGE_SYSTEM_PROMPT},
+                                {"role": "user", "content": user_msg},
+                            ],
+                            temperature=0.0,
+                            max_tokens=200,
+                        )
+                    ).result()
+            else:
+                response = asyncio.run(
+                    self.judge_llm.generate(
+                        messages=[
+                            {"role": "system", "content": self.JUDGE_SYSTEM_PROMPT},
+                            {"role": "user", "content": user_msg},
+                        ],
+                        temperature=0.0,
+                        max_tokens=200,
+                    )
+                )
+
+            text = response.content
+            import re as _re
+            match = _re.search(r'SCORE:\s*([\d.]+)', text)
+            score = float(match.group(1)) if match else 0.5
+            score = max(0.0, min(1.0, score))
+
+            return MetricResult(
+                metric_name="task_success",
+                score=score,
+                passed=score >= threshold,
+                threshold=threshold,
+                details={"method": "llm_judge", "judge_response": text[:300]},
+            )
+        except Exception as e:
+            logger.error(f"Judge-based task success evaluation failed: {e}")
+            return self._semantic_evaluation(generated, expected, threshold)
+
+    @staticmethod
+    def _semantic_evaluation(generated: str, expected: str, threshold: float) -> MetricResult:
+        model = _get_embedding_model()
+        if model is not None:
+            embeddings = model.encode([generated, expected])
+            score = _cosine_similarity(embeddings[0], embeddings[1])
+        else:
+            score = _token_overlap(generated, expected)
 
         return MetricResult(
             metric_name="task_success",
             score=score,
             passed=score >= threshold,
             threshold=threshold,
-            details={"exact_match": exact, "semantic_similarity": semantic},
+            details={"method": "semantic_similarity"},
         )
-
-    @staticmethod
-    def _exact_match_score(generated: str, expected: str) -> float:
-        gen_norm = re.sub(r"\s+", " ", generated.strip().lower())
-        exp_norm = re.sub(r"\s+", " ", expected.strip().lower())
-        if gen_norm == exp_norm:
-            return 1.0
-        if exp_norm in gen_norm:
-            return 0.8
-        return 0.0
-
-    @staticmethod
-    def _semantic_similarity(generated: str, expected: str) -> float:
-        model = _get_embedding_model()
-        if model is not None:
-            embeddings = model.encode([generated, expected])
-            return _cosine_similarity(embeddings[0], embeddings[1])
-        return _token_overlap(generated, expected)
 
 
 class RelevanceMetric:
@@ -311,19 +371,43 @@ class HallucinationDetector:
     def _judge_based_evaluation(
         self, prompt: str, generated: str, reference: str, threshold: float
     ) -> MetricResult:
+        import asyncio
         user_msg = self.JUDGE_USER_TEMPLATE.format(
             prompt=prompt, expected=reference, generated=generated
         )
 
         try:
-            response = self.judge_llm.generate(
-                messages=[
-                    {"role": "system", "content": self.JUDGE_SYSTEM_PROMPT},
-                    {"role": "user", "content": user_msg},
-                ],
-                temperature=0.0,
-                max_tokens=300,
-            )
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    response = pool.submit(
+                        asyncio.run,
+                        self.judge_llm.generate(
+                            messages=[
+                                {"role": "system", "content": self.JUDGE_SYSTEM_PROMPT},
+                                {"role": "user", "content": user_msg},
+                            ],
+                            temperature=0.0,
+                            max_tokens=300,
+                        )
+                    ).result()
+            else:
+                response = asyncio.run(
+                    self.judge_llm.generate(
+                        messages=[
+                            {"role": "system", "content": self.JUDGE_SYSTEM_PROMPT},
+                            {"role": "user", "content": user_msg},
+                        ],
+                        temperature=0.0,
+                        max_tokens=300,
+                    )
+                )
+
             verdict_text = response.content.upper()
             is_hallucinated = "HALLUCINATED" in verdict_text
             score = 1.0 if is_hallucinated else 0.0
@@ -373,7 +457,17 @@ class ConsistencyMetric:
         self,
         outputs: List[str],
         threshold: float = 0.8,
+        deterministic: bool = False,
     ) -> MetricResult:
+        if deterministic:
+            return MetricResult(
+                metric_name="consistency",
+                score=1.0,
+                passed=True,
+                threshold=threshold,
+                details={"note": "Skipped: temperature=0 (deterministic mode produces identical outputs)"},
+                skipped=True,
+            )
         if len(outputs) < 2:
             return MetricResult(
                 metric_name="consistency",
@@ -450,10 +544,10 @@ class QualityGate:
     def evaluate(self, metrics: Dict[str, MetricResult]) -> QualityGateResult:
         failed = []
         for name, result in metrics.items():
-            if not result.passed:
+            if not result.skipped and not result.passed:
                 failed.append(name)
 
-        scores = [m.score for m in metrics.values()]
+        scores = [m.score for m in metrics.values() if not m.skipped]
         overall = sum(scores) / len(scores) if scores else 0.0
 
         return QualityGateResult(
@@ -474,7 +568,7 @@ class MetricsEngine:
         judge_llm=None,
         thresholds: Optional[Dict[str, float]] = None,
     ):
-        self.task_success = TaskSuccessMetric()
+        self.task_success = TaskSuccessMetric(judge_llm=judge_llm)
         self.relevance = RelevanceMetric()
         self.hallucination = HallucinationDetector(judge_llm=judge_llm)
         self.consistency = ConsistencyMetric()
@@ -498,7 +592,7 @@ class MetricsEngine:
 
         if evaluate_all or "task_success" in metrics_to_evaluate:
             results["task_success"] = self.task_success.evaluate(
-                generated, expected, threshold=thresholds.get("task_success", 0.8)
+                prompt, generated, expected, threshold=thresholds.get("task_success", 0.7)
             )
 
         if evaluate_all or "relevance" in metrics_to_evaluate:

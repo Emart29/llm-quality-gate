@@ -146,9 +146,9 @@ class TestCIPerformanceOptimizations:
             evals.metrics._is_ci_mode = None
             
             start_time = time.time()
-            result_ci = metric.evaluate(generated, expected, threshold=0.8)
+            result_ci = metric.evaluate("What is the capital of France?", generated, expected, threshold=0.8)
             ci_time = time.time() - start_time
-            
+
             assert result_ci.metric_name == "task_success"
             assert result_ci.score >= 0.0
 
@@ -156,13 +156,13 @@ class TestCIPerformanceOptimizations:
         with patch.dict(os.environ, {}, clear=True):
             evals.metrics._embedding_model = None
             evals.metrics._is_ci_mode = None
-            
+
             # Mock the import to avoid loading real sentence-transformers
             with patch('evals.metrics._get_embedding_model', return_value=None):
                 start_time = time.time()
-                result_normal = metric.evaluate(generated, expected, threshold=0.8)
+                result_normal = metric.evaluate("What is the capital of France?", generated, expected, threshold=0.8)
                 normal_time = time.time() - start_time
-                
+
                 assert result_normal.metric_name == "task_success"
                 assert result_normal.score >= 0.0
 
